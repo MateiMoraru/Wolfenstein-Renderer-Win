@@ -1,0 +1,58 @@
+#ifndef RAYCASTER_H
+#define RAYCASTER_H
+
+#include "Window.h"
+
+#define NUMBER_RAYS 400
+#define RAY_LEN 1200
+
+#define SCALE 0.2
+
+#define M_PI 3.14156
+
+#ifndef DEG_TO_RAD
+#define DEG_TO_RAD(angle) ((angle) * M_PI / 180.0f)
+#endif
+
+#ifndef MAP_WIDTH
+#define MAP_WIDTH 640
+#define MAP_HEIGHT 480
+#endif
+
+typedef struct
+{
+    float x;
+    float y;
+    float angle;
+    float slope;
+
+    float len;
+    // y -y0 =slope(x - x0) + y0
+    // f(x) = slope(x - this->x) + y
+
+    bool collided;
+} Ray;
+
+typedef struct
+{
+    float x;
+    float y;
+    float angle;
+    float fov;
+    Ray rays[NUMBER_RAYS];
+} RayCaster;
+
+void ray_caster_init(int x, int y, int direction, int fov, RayCaster* ray_caster);
+
+void ray_caster_set_position(RayCaster* ray_caster, float x, float y);
+void ray_caster_move(RayCaster* ray_caster, float x, float y);
+
+void ray_increase_angle(Ray* ray, float angle);
+void ray_caster_rotate(RayCaster* ray_caster, float dx);
+
+void draw_ray(Window* window, Ray* ray, char** map);
+void draw_rays(Window* window, Ray* rays, char** map);
+
+float ray_hits_wall(char** map, Ray* ray);
+
+#endif

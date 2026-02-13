@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Wolfenstein-Renderer-Win/Wolfenstein-Renderer-Win.vcxproj" />
+</Solution>
