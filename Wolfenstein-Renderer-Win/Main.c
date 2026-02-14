@@ -138,8 +138,6 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
 
     if (forward != 0.0f || strafe != 0.0f)
     {
-        player_move(map, player, ray_caster, forward, strafe, dt);
-
         footstep_timer -= dt;
         if (footstep_timer <= 0.0f)
         {
@@ -147,6 +145,7 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
             footstep_timer = footstep_interval;
         }
     }
+    player_move(map, player, ray_caster, forward, strafe, dt); 
 }
 
 
@@ -279,7 +278,7 @@ int main()
         .y = 18,
         .vx = 0,
         .vy = 0,
-        .speed = 10.0f,
+        .speed = 25.0f,
         .accel = 100,
         .direction = 45,
         .fov = 60
@@ -289,7 +288,7 @@ int main()
 
     ray_caster_init(player.x, player.y, player.direction, player.fov, &ray_caster);
 
-    player_set_position(map, &player, &ray_caster, 2, 2);
+    player_set_position(map, &player, &ray_caster, 4, 4);
 
     ray_caster_set_position(&ray_caster, player.x, player.y);
 
@@ -320,7 +319,7 @@ int main()
     sound_init(&sfx_background_music);
     sound_play_loop(&sfx_background_music);
 
-    window_set_fps(window, 0);
+    window_set_fps(window, 144);
 
     while (window->running)
     {
@@ -348,7 +347,7 @@ int main()
         ray_caster_set_position(&ray_caster, player.x, player.y);
 
         handle_mouse(&mouse);
-        float target_rotation = mouse.dx * SENSITIVITY;
+        float target_rotation = mouse.dx * SENSITIVITY * window->delta_time;
 
         rotation_velocity += (target_rotation - rotation_velocity) * rotation_smoothing * window->delta_time;
 

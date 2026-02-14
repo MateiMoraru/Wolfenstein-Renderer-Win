@@ -3,10 +3,10 @@
 
 #include "Window.h"
 
-#define NUMBER_RAYS 400
+#define NUMBER_RAYS 1200
 #define RAY_LEN 400
 
-#define SENSITIVITY 80
+#define SENSITIVITY 190
 
 #define SCALE 2
 
@@ -35,6 +35,8 @@ typedef struct
     // f(x) = slope(x - this->x) + y
 
     bool collided;
+
+    char hit_id;
 } Ray;
 
 typedef struct

@@ -8,7 +8,7 @@ void player_set_position(char** map, Player* player, RayCaster* ray_caster, floa
     player->x = x;
     player->y = y;
 
-    map[(int)player->y][(int)player->x] = 'p';
+    map[(int)player->y][(int)player->x] = ' ';
 
     ray_caster_move(ray_caster, x, y);
 }
@@ -36,16 +36,16 @@ void player_move(char** map, Player* player, RayCaster* ray_caster, float forwar
     float new_x = player->x + player->vx * delta_time;
     float new_y = player->y + player->vy * delta_time;
 
-    if (map[(int)new_y][(int)new_x] != '#')
+    if (map[(int)new_y][(int)new_x] == ' ')
     {
         player->x = new_x;
         player->y = new_y;
     }
     else
     {
-        if (map[(int)player->y][(int)new_x] != '#')
+        if (map[(int)player->y][(int)new_x] == ' ')
             player->x = new_x;
-        if (map[(int)new_y][(int)player->x] != '#')
+        if (map[(int)new_y][(int)player->x] == ' ')
             player->y = new_y;
     }
 

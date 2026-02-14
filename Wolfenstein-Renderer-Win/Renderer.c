@@ -1,7 +1,8 @@
 #include "Renderer.h"
 
 const Color4 COLOR_BACKGROUND = { 10, 10, 20, 255 };
-const Color4 COLOR_WALL = { 88, 41, 148, 255 };
+const Color4 COLOR_WALL = { 101, 85, 115, 255 };
+const Color4 COLOR_SEPARATOR = { 100, 93, 120, 255 };
 
 Renderer* renderer_init(Player* player, RayCaster* ray_caster, Window* window)
 {
@@ -21,7 +22,11 @@ Renderer* renderer_init(Player* player, RayCaster* ray_caster, Window* window)
 
 Column compute_column(int max_height, Ray* ray)
 {
-    Color4 color = COLOR_WALL;
+    Color4 color;
+    if (ray->hit_id == '#')
+        color = COLOR_WALL;
+    else
+        color = COLOR_SEPARATOR;
 
     int height;
 

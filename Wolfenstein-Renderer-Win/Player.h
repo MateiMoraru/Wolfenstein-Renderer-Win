@@ -6,7 +6,7 @@
 #include "RayCaster.h"
 
 #define DIR_OFFSET 26.0f
-#define ACCELERATION 50.0f
+#define ACCELERATION 5.0f
 #define SPEED_MULT 2.0f
 
 typedef struct

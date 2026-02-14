@@ -83,8 +83,11 @@ float ray_hits_wall(char** map, Ray* ray)
 
         if (mapx < 0 || mapx >= MAP_WIDTH || mapy < 0 || mapy >= MAP_HEIGHT)
             return -1;
-        if (map[mapy][mapx] == '#')
+        if (map[mapy][mapx] == '#' || map[mapy][mapx] == '0')
+        {
             hit = true;
+            ray->hit_id = map[mapy][mapx];
+        }
     }
     if (side == 0) 
         return (mapx - x + (1 - stepx) / 2.0f) / dx;
@@ -100,7 +103,7 @@ void draw_ray(Window* window, Ray* ray, char** map, int offset_x, int offset_y, 
     float y0 = ray->y * SCALE;
     float x1 = x0 + dx;
     float y1 = y0 + dy;
-    SDL_SetRenderDrawColor(window->renderer, 0, 255, 0, 255);
+    SDL_SetRenderDrawColor(window->renderer, 70, 107, 235, 255);
     SDL_RenderDrawLine(window->renderer, x0 + offset_x, y0 + offset_y, x1 + offset_x, y1 + offset_y);
 }
 

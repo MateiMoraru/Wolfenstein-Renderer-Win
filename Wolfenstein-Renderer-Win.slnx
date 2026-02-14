@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Wolfenstein-Renderer-Win/Wolfenstein-Renderer-Win.vcxproj" />
+  <Project Path="Wolfenstein-Renderer-Win/Wolfenstein-Renderer-Win.vcxproj" Id="cb41cebc-808e-4ef2-88f9-f8fa9a36fe58" />
 </Solution>

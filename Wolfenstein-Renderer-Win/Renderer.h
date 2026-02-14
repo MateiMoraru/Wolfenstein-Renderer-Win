@@ -12,11 +12,13 @@
 
 extern const Color4 COLOR_BACKGROUND;
 extern const Color4 COLOR_WALL;
+extern const Color4 COLOR_SEPARATOR;
 
 typedef struct
 {
     Color4 color;
     int height;
+    char hit_id;
 } Column;
 
 typedef struct
