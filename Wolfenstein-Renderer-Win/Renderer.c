@@ -71,22 +71,17 @@ void renderer_update(Renderer* renderer)
 
 void renderer_draw(Renderer* renderer, Window* window)
 {
-    int width = window->width / NUMBER_RAYS;
-
-    SDL_Rect rect = { 0, 0, width, 0 };
+    float column_width = (float)window->width / (float)NUMBER_RAYS;
+    SDL_Rect rect = { 0, 0, 0, 0 };
 
     for (int i = 0; i < NUMBER_RAYS; i++)
     {
         Column col = renderer->pixels[i];
 
-        rect.x = i * width;
+        rect.x = (int)(i * column_width);
         rect.y = window->height / 2 - col.height / 2;
         rect.h = col.height;
-
-        if (i == NUMBER_RAYS - 1)
-            rect.w = window->width - rect.x;
-        else
-            rect.w = width;
+        rect.w = (int)((i + 1) * column_width) - rect.x;
 
         SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
         SDL_RenderFillRect(window->renderer, &rect);

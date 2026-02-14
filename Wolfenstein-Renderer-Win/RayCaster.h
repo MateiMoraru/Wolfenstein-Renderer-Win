@@ -4,9 +4,11 @@
 #include "Window.h"
 
 #define NUMBER_RAYS 400
-#define RAY_LEN 1200
+#define RAY_LEN 400
 
-#define SCALE 0.2
+#define SENSITIVITY 80
+
+#define SCALE 2
 
 #define M_PI 3.14156
 
@@ -15,9 +17,11 @@
 #endif
 
 #ifndef MAP_WIDTH
-#define MAP_WIDTH 640
-#define MAP_HEIGHT 480
+#define MAP_WIDTH 128
+#define MAP_HEIGHT 128
 #endif
+
+#define RAY_DISPLAY_INTERVAL 10
 
 typedef struct
 {
@@ -50,8 +54,8 @@ void ray_caster_move(RayCaster* ray_caster, float x, float y);
 void ray_increase_angle(Ray* ray, float angle);
 void ray_caster_rotate(RayCaster* ray_caster, float dx);
 
-void draw_ray(Window* window, Ray* ray, char** map);
-void draw_rays(Window* window, Ray* rays, char** map);
+void draw_ray(Window* window, Ray* ray, char** map, float distance);
+void draw_rays(Window* window, Ray* rays, char** map, int x, int y);
 
 float ray_hits_wall(char** map, Ray* ray);
 

@@ -5,7 +5,7 @@
 #include "RayCaster.h"
 #include "Player.h"
 
-#define HEIGHT_MULT 10.0f
+#define HEIGHT_MULT 7.0f
 #define COLOR_MULT 5.0f
 #define MAX_SEE_DISTANCE 200
 #define MIN_DIST_MULT 0.001f

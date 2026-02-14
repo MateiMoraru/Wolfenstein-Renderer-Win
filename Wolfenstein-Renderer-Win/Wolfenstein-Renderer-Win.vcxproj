@@ -23,6 +23,7 @@
     <ClCompile Include="Player.c" />
     <ClCompile Include="RayCaster.c" />
     <ClCompile Include="Renderer.c" />
+    <ClCompile Include="Sound.c" />
     <ClCompile Include="Text.c" />
     <ClCompile Include="Window.c" />
   </ItemGroup>
@@ -30,6 +31,7 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Sound.h" />
     <ClInclude Include="Text.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
