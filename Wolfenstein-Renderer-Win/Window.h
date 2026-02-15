@@ -4,16 +4,14 @@
 #include <SDL.h>
 #include <stdbool.h>
 
+#include "asset_drawer.h"
+
 #define WINDOW_FULLSCREEN -1
 
 #define WINDOW_QUIT SDL_QUIT
 
 #define WINDOW_KEY_PRESSED SDL_KEYDOWN
 
-typedef struct Color4
-{
-    int r, g, b, a;
-} Color4;
 
 typedef struct Window
 {

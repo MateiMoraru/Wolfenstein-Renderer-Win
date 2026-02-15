@@ -4,6 +4,7 @@
 #include "Window.h"
 #include "RayCaster.h"
 #include "Player.h"
+#include "Enemy.h"
 
 #define HEIGHT_MULT 7.0f
 #define COLOR_MULT 5.0f
@@ -34,6 +35,6 @@ Column compute_column(int max_height, Ray* ray);
 
 Renderer* renderer_init(Player* player, RayCaster* ray_caster, Window* window);
 void renderer_update(Renderer* renderer);
-void renderer_draw(Renderer* renderer, Window* window);
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy);
 
 #endif

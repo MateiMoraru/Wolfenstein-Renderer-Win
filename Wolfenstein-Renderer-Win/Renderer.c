@@ -74,10 +74,16 @@ void renderer_update(Renderer* renderer)
     }
 }
 
-void renderer_draw(Renderer* renderer, Window* window)
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy)
 {
+    enemy->drawn = false;
     float column_width = (float)window->width / (float)NUMBER_RAYS;
     SDL_Rect rect = { 0, 0, 0, 0 };
+    Ray ray;
+
+    float enemy_screen_x = 0;
+    float enemy_screen_y = 0;
+    float enemy_scale = 0;
 
     for (int i = 0; i < NUMBER_RAYS; i++)
     {
@@ -90,5 +96,25 @@ void renderer_draw(Renderer* renderer, Window* window)
 
         SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
         SDL_RenderFillRect(window->renderer, &rect);
+
+        ray = renderer->ray_caster->rays[i];
+
+        if (ray.hit_enemy == 'E' && !enemy->drawn)
+        {
+            enemy_screen_x = i * column_width - i / 32.f;
+
+            float projected_height = (window->height / ray.hit_enemy_distance) * HEIGHT_MULT;
+
+            enemy_screen_y = window->height / 2 - projected_height / 2 + 32;
+
+            enemy_scale = projected_height / enemy->sprite.height;
+
+            enemy->drawn = true;
+        }
+    }
+
+    if (enemy->drawn)
+    {
+        enemy_draw_pos_size(window, enemy, enemy_screen_x, enemy_screen_y, enemy_scale);
     }
 }

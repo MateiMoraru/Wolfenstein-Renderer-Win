@@ -8,7 +8,7 @@
 #include "Renderer.h"
 #include "Text.h"
 #include "Sound.h"
-
+#include "Enemy.h"
 
 #define WIDTH -1
 #define HEIGHT -1
@@ -319,6 +319,8 @@ int main()
     sound_init(&sfx_background_music);
     sound_play_loop(&sfx_background_music);
 
+    Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy1.him", 101, 11, 20);
+
     window_set_fps(window, 144);
 
     while (window->running)
@@ -365,7 +367,7 @@ int main()
         window_set_draw_color(window, color_to_hex(&COLOR_BACKGROUND));
         window_clear(window);
 
-        renderer_draw(renderer, window);
+        renderer_draw(renderer, window, &enemy_ghost);
 
         draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 

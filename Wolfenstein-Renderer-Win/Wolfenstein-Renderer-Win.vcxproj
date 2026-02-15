@@ -19,19 +19,26 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="asset_drawer.c" />
+    <ClCompile Include="Enemy.c" />
     <ClCompile Include="Main.c" />
     <ClCompile Include="Player.c" />
     <ClCompile Include="RayCaster.c" />
     <ClCompile Include="Renderer.c" />
     <ClCompile Include="Sound.c" />
+    <ClCompile Include="Sprite.c" />
     <ClCompile Include="Text.c" />
     <ClCompile Include="Window.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="asset_drawer.h" />
+    <ClInclude Include="compressor.h" />
+    <ClInclude Include="Enemy.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Sound.h" />
+    <ClInclude Include="Sprite.h" />
     <ClInclude Include="Text.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
@@ -91,7 +98,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>C:\SDL2\include</AdditionalIncludeDirectories>
@@ -109,7 +116,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>C:\SDL2\include</AdditionalIncludeDirectories>
@@ -125,7 +132,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>C:\SDL2\include</AdditionalIncludeDirectories>
@@ -143,7 +150,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ADD;SDL_MAIN_HANDLED;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>C:\SDL2\include</AdditionalIncludeDirectories>

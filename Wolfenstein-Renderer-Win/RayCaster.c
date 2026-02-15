@@ -44,6 +44,10 @@ void ray_caster_rotate(RayCaster* ray_caster, float dx)
 
 float ray_hits_wall(char** map, Ray* ray)
 {
+    ray->hit_enemy = ' ';
+    ray->hit_enemy_x = -1;
+    ray->hit_enemy_y = -1;
+
     float x = ray->x;
     float y = ray->y;
 
@@ -87,6 +91,25 @@ float ray_hits_wall(char** map, Ray* ray)
         {
             hit = true;
             ray->hit_id = map[mapy][mapx];
+        }
+        else if (map[mapy][mapx] == 'E')
+        {
+            ray->hit_enemy = 'E';
+
+            float hit_dist;
+            if (side == 0)
+                hit_dist = (mapx - x + (1 - stepx) / 2.0f) / dx;
+            else
+                hit_dist = (mapy - y + (1 - stepy) / 2.0f) / dy;
+
+            ray->hit_enemy_distance = hit_dist;
+
+            // world hit position (NOT tile index)
+            float hit_world_x = x + dx * hit_dist;
+            float hit_world_y = y + dy * hit_dist;
+
+            ray->hit_enemy_x = hit_world_x;
+            ray->hit_enemy_y = hit_world_y;
         }
     }
     if (side == 0) 

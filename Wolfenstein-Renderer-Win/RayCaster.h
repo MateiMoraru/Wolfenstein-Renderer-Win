@@ -37,6 +37,10 @@ typedef struct
     bool collided;
 
     char hit_id;
+    char hit_enemy;
+    int hit_enemy_x;
+    int hit_enemy_y;
+    float hit_enemy_distance;
 } Ray;
 
 typedef struct
