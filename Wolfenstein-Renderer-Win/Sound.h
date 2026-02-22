@@ -10,6 +10,7 @@ typedef struct
     Uint8* wav_buffer;
     Uint32 wav_length;
     SDL_AudioSpec wav_spec;
+    SDL_AudioDeviceID device;
 } Sound;
 
 Sound sound_load(char* filename);
@@ -17,5 +18,6 @@ void sound_play_modify(Sound* sound, float volume);
 void sound_play_loop(Sound* sound);
 void sound_free(Sound* sound);
 void sound_init();
+void sound_close();
 
 #endif

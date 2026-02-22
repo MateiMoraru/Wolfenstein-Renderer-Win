@@ -131,33 +131,201 @@ char font8x8_basic[128][8] = {
     { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 };
 
-void text_draw(SDL_Renderer* renderer, Font* font, int x, int y, const char* text, int font_size, SDL_Color color) {
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+void font_init(SDL_Renderer* renderer, Font* font, const uint8_t data[128][8], int font_size, SDL_Color color)
+{
+    if (!renderer || !font || !data)
+    {
+        return;
+    }
 
-    int cursor_x = x;
-    int cursor_y = y;
+    font->width = 8 * font_size;
+    font->height = 8 * font_size;
+    font->data = data;
 
-    for (const char* p = text; *p; p++) {
-        unsigned char c = (unsigned char)*p;
+    for (int i = 0; i < 128; i++)
+    {
+        if (font->glyphs[i])
+        {
+            SDL_DestroyTexture(font->glyphs[i]);
+            font->glyphs[i] = NULL;
+        }
+    }
 
-        if (c >= 128) continue;  // Skip unsupported characters
+    for (int c = 0; c < 128; c++)
+    {
+        SDL_Texture* tex = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, font->width, font->height);
+        if (!tex)
+        {
+            font->glyphs[c] = NULL;
+            continue;
+        }
 
-        // Draw character pixel-by-pixel
-        for (int row = 0; row < 8; row++) {
-            char row_bits = font->data[c][row];
-            for (int col = 0; col < 8; col++) {
-                if (row_bits & (1 << col)) {
-                    SDL_Rect pixel_rect = {
-                        cursor_x + col * font_size,
-                        cursor_y + row * font_size,
-                        font_size,
-                        font_size
-                    };
-                    SDL_RenderFillRect(renderer, &pixel_rect);
+        SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+
+        SDL_Texture* prev = SDL_GetRenderTarget(renderer);
+        SDL_SetRenderTarget(renderer, tex);
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+
+        for (int row = 0; row < 8; row++)
+        {
+            uint8_t row_bits = data[c][row];
+            for (int col = 0; col < 8; col++)
+            {
+                if (row_bits & (1 << col))
+                {
+                    SDL_Rect r = { col * font_size, row * font_size, font_size, font_size };
+                    SDL_RenderFillRect(renderer, &r);
                 }
             }
         }
 
-        cursor_x += 8 * font_size;
+        SDL_SetRenderTarget(renderer, prev);
+
+        font->glyphs[c] = tex;
+    }
+}
+
+void font_destroy(Font* font)
+{
+    if (!font)
+    {
+        return;
+    }
+
+    for (int i = 0; i < 128; i++)
+    {
+        if (font->glyphs[i])
+        {
+            SDL_DestroyTexture(font->glyphs[i]);
+            font->glyphs[i] = NULL;
+        }
+    }
+}
+
+void text_draw(SDL_Renderer* renderer, Font* font, int x, int y, const char* text, int font_size, SDL_Color color)
+{
+    if (!renderer || !font || !text)
+    {
+        return;
+    }
+
+    int cursor_x = x;
+    int cursor_y = y;
+
+    for (const char* p = text; *p; p++)
+    {
+        unsigned char c = (unsigned char)*p;
+
+        if (c == '\n')
+        {
+            cursor_x = x;
+            cursor_y += font->height;
+            continue;
+        }
+
+        if (c >= 128)
+        {
+            continue;
+        }
+
+        SDL_Texture* glyph = font->glyphs[c];
+        if (!glyph)
+        {
+            cursor_x += font->width;
+            continue;
+        }
+
+        SDL_SetTextureColorMod(glyph, color.r, color.g, color.b);
+        SDL_SetTextureAlphaMod(glyph, color.a);
+
+        SDL_Rect dst = { cursor_x, cursor_y, font->width, font->height };
+        SDL_RenderCopy(renderer, glyph, NULL, &dst);
+
+        cursor_x += font->width;
+    }
+}
+
+void text_draw_shadow(SDL_Renderer* renderer, Font* font, int x, int y, const char* text, int font_size, SDL_Color color)
+{
+    if (!renderer || !font || !text)
+    {
+        return;
+    }
+
+    SDL_Color shadow = (SDL_Color){ 80, 80, 80, color.a };
+
+    int cursor_x = x;
+    int cursor_y = y;
+
+    for (const char* p = text; *p; p++)
+    {
+        unsigned char c = (unsigned char)*p;
+
+        if (c == '\n')
+        {
+            cursor_x = x;
+            cursor_y += font->height;
+            continue;
+        }
+
+        if (c >= 128)
+        {
+            continue;
+        }
+
+        SDL_Texture* glyph = font->glyphs[c];
+        if (!glyph)
+        {
+            cursor_x += font->width;
+            continue;
+        }
+
+        SDL_SetTextureColorMod(glyph, shadow.r, shadow.g, shadow.b);
+        SDL_SetTextureAlphaMod(glyph, shadow.a);
+
+        SDL_Rect dst = { cursor_x + font_size, cursor_y + font_size, font->width, font->height };
+        SDL_RenderCopy(renderer, glyph, NULL, &dst);
+
+        cursor_x += font->width;
+    }
+
+    cursor_x = x;
+    cursor_y = y;
+
+    for (const char* p = text; *p; p++)
+    {
+        unsigned char c = (unsigned char)*p;
+
+        if (c == '\n')
+        {
+            cursor_x = x;
+            cursor_y += font->height;
+            continue;
+        }
+
+        if (c >= 128)
+        {
+            continue;
+        }
+
+        SDL_Texture* glyph = font->glyphs[c];
+        if (!glyph)
+        {
+            cursor_x += font->width;
+            continue;
+        }
+
+        SDL_SetTextureColorMod(glyph, color.r, color.g, color.b);
+        SDL_SetTextureAlphaMod(glyph, color.a);
+
+        SDL_Rect dst = { cursor_x, cursor_y, font->width, font->height };
+        SDL_RenderCopy(renderer, glyph, NULL, &dst);
+
+        cursor_x += font->width;
     }
 }

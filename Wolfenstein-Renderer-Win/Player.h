@@ -23,6 +23,8 @@ typedef struct
 
     float direction;
     float fov;
+
+    int ammo;
 } Player;
 
 void player_set_position(char** map, Player* player, RayCaster* ray_caster, float x, float y);

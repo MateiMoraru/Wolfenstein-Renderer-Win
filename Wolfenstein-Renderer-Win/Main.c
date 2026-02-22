@@ -20,7 +20,9 @@
 
 #define NUM_FOOTSTEPS 4
 
-static float footstep_timer = 0.0f;
+#define FONT_SIZE 16
+
+float footstep_timer = 0.0f;
 float footstep_interval = 0.5f;
 
 Sound footstep_sounds[NUM_FOOTSTEPS];
@@ -149,7 +151,7 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
 }
 
 
-void map_load(char** map, const char* map_load_file)
+void map_load(char** map, const char* map_load_file, Enemy* enemy)
 {
     FILE* fin = fopen(map_load_file, "r");
     if (!fin)
@@ -167,6 +169,11 @@ void map_load(char** map, const char* map_load_file)
         while (buffer[x] != '\0' && buffer[x] != '\n' && x < MAP_WIDTH)
         {
             map[y][x] = buffer[x];
+            if (map[y][x] == 'E')
+            {
+                enemy->map_x = x;
+                enemy->map_y = y;
+            }
             x++;
         }
 
@@ -276,13 +283,17 @@ void sprite_draw_hud(Window* window, Sprite* sprite, float scale)
 int main()
 {
     srand(time(NULL));
-    Window* window = window_create(-1, -1, "Domm");
-    SDL_SetRelativeMouseMode(SDL_TRUE);
 
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
         printf("Failed to init SDL: %s\n", SDL_GetError());
         return 1;
     }
+
+    sound_init();
+
+    Window* window = window_create(-1, -1, "Domm");
+    SDL_SetRelativeMouseMode(SDL_TRUE);
+
 
     const char* map_load_file = "assets/data/map.txt";
 
@@ -290,7 +301,13 @@ int main()
 
     map = map_init();
 
-    map_load(map, map_load_file);
+    Sprite sprite_empty = sprite_load(window->renderer, "assets/sprites/empty.him", 11, 20);
+    Sprite sprite_enemy_ghost_hit = sprite_load(window->renderer, "assets/sprites/enemy_hit.him", 11, 20);
+    Sprite sprite_enemy_ghost = sprite_load(window->renderer, "assets/sprites/enemy.him", 11, 20);
+
+    Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy.him", 101, 11, 20);
+
+    map_load(map, map_load_file, &enemy_ghost);
 
     Player player = {
         .x = 63,
@@ -300,7 +317,8 @@ int main()
         .speed = 25.0f,
         .accel = 100,
         .direction = 45,
-        .fov = 60
+        .fov = 60,
+        .ammo = 13
     };
 
     RayCaster ray_caster;
@@ -322,6 +340,8 @@ int main()
         .data = (const uint8_t(*)[8]) font8x8_basic
     };
 
+    font_init(window->renderer, &font, font8x8_basic, FONT_SIZE / 8, (SDL_Color) { 138, 22, 4, 255 });
+
 
     Renderer* renderer = renderer_init(&player, &ray_caster, window);
 
@@ -335,20 +355,13 @@ int main()
     footstep_init();
 
     Sound sfx_background_music = sound_load("assets/sfx/background_music.wav");
-    sound_init(&sfx_background_music);
     sound_play_loop(&sfx_background_music);
 
     Sound sfx_gun_explode = sound_load("assets/sfx/gun_fire.wav");
-    sound_init(&sfx_gun_explode);
 
     Sound sfx_die = sound_load("assets/sfx/enemy_die.wav");
-    sound_init(&sfx_die);
 
-    Sprite sprite_empty = sprite_load(window->renderer, "assets/sprites/empty.him", 11, 20);
-    Sprite sprite_enemy_ghost_hit = sprite_load(window->renderer, "assets/sprites/enemy_hit.him", 11, 20);
-    Sprite sprite_enemy_ghost = sprite_load(window->renderer, "assets/sprites/enemy.him", 11, 20);
-
-    Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy.him", 101, 11, 20);
+    Sound sfx_step = sound_load("assets/sfx/step.wav");
 
     window_set_fps(window, 160);
 
@@ -362,6 +375,8 @@ int main()
     bool shoot = false;
 
     int middle_ray = NUMBER_RAYS / 2;
+
+    float enemy_move_timer = 0;
 
     while (window->running)
     {
@@ -386,8 +401,9 @@ int main()
             }
             else if (window->event.type == SDL_MOUSEBUTTONDOWN)
             {
-                if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > 1.5f) // 1 sec delay? hmmm
+                if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > 1.5f && player.ammo > 0) // 1 sec delay? hmmm
                 {
+                    player.ammo--;
                     shoot = true;
                     gun_timer = 0.0f;
 
@@ -396,6 +412,27 @@ int main()
                 }
             }
 
+        }
+
+        enemy_move_timer += window->delta_time;
+
+        if (enemy_ghost.active && enemy_move_timer >= .4f)
+        {
+            float dx = player.x - enemy_ghost.map_x;
+            float dy = player.y - enemy_ghost.map_y;
+
+            float dist_sq = dx * dx + dy * dy;
+
+            float rolloff = 0.02f;
+            float volume_target = 1.0f / (1.0f + rolloff * dist_sq);
+
+            float min_audible = 0.08f;
+            if (volume_target < min_audible) volume_target = 0.0f;
+            if (volume_target > 1.0f) volume_target = 1.0f;
+
+            sound_play_modify(&sfx_step, volume_target);
+            enemy_update(&enemy_ghost, window->delta_time, map, MAP_HEIGHT, MAP_WIDTH, player.x, player.y);
+            enemy_move_timer = 0;
         }
 
         gun_timer += window->delta_time;
@@ -453,10 +490,13 @@ int main()
 
         draw_rays(window, &ray_caster.rays, map, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
-        smoke_draw_all(window, &ray_caster, smoke_puffs, &gun_smoke);
+        //smoke_draw_all(window, &ray_caster, smoke_puffs, &gun_smoke);
 
         sprintf_s(fps_buffer, sizeof(fps_buffer), "FPS: %d", window->FPS);
         text_draw(window->renderer, &font, 10, 10, fps_buffer, 2, (SDL_Color) { 255, 255, 255, 255 });
+
+        sprintf_s(fps_buffer, sizeof(fps_buffer), "AMMO: %d", player.ammo);
+        text_draw_shadow(window->renderer, &font, 0, window->height - FONT_SIZE, fps_buffer, 1, (SDL_Color) { 255, 255, 255, 255 });
 
         if (gun_timer < 0.5f)
         {

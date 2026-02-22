@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="asset_drawer.c" />
+    <ClCompile Include="AStar.c" />
     <ClCompile Include="compressor.c" />
     <ClCompile Include="Enemy.c" />
     <ClCompile Include="Main.c" />
@@ -33,6 +34,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asset_drawer.h" />
+    <ClInclude Include="AStar.h" />
     <ClInclude Include="compressor.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Player.h" />

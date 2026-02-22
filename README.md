@@ -15,3 +15,7 @@ Added sounds and wall types
 Added shooting! no way!
 
 ![Demo](gifs/gif4.gif)
+
+
+### Gameplay demo with sound, click the gif:)
+[![Gameplay demo](gifs/gif5.gif)](gifs/video1.mp4)
