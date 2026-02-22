@@ -45,20 +45,26 @@ void ray_caster_rotate(RayCaster* ray_caster, float dx)
 float ray_hits_wall(char** map, Ray* ray)
 {
     ray->hit_enemy = ' ';
+    ray->hit_enemy_distance = 1e30f;
     ray->hit_enemy_x = -1;
     ray->hit_enemy_y = -1;
+    ray->hit_enemy_u = 0.0f;
+
+    ray->hit_x = -1.0f;
+    ray->hit_y = -1.0f;
+    ray->hit_side = 0;
 
     float x = ray->x;
     float y = ray->y;
 
-    float dx = cos(ray->angle);
-    float dy = sin(ray->angle);
+    float dx = cosf(ray->angle);
+    float dy = sinf(ray->angle);
 
     int mapx = (int)x;
     int mapy = (int)y;
 
-    float delta_dist_x = (dx == 0) ? 1e30f : fabs(1.0f / dx);
-    float delta_dist_y = (dy == 0) ? 1e30f : fabs(1.0f / dy);
+    float delta_dist_x = (dx == 0) ? 1e30f : fabsf(1.0f / dx);
+    float delta_dist_y = (dy == 0) ? 1e30f : fabsf(1.0f / dy);
 
     int stepx = (dx < 0) ? -1 : 1;
     int stepy = (dy < 0) ? -1 : 1;
@@ -68,9 +74,7 @@ float ray_hits_wall(char** map, Ray* ray)
 
     int side = 0;
 
-    bool hit = false;
-
-    while (!hit)
+    while (1)
     {
         if (side_dist_x < side_dist_y)
         {
@@ -87,34 +91,31 @@ float ray_hits_wall(char** map, Ray* ray)
 
         if (mapx < 0 || mapx >= MAP_WIDTH || mapy < 0 || mapy >= MAP_HEIGHT)
             return -1;
-        if (map[mapy][mapx] == '#' || map[mapy][mapx] == '0')
+
+        char cell = map[mapy][mapx];
+
+        float t = (side == 0) ? (mapx - x + (1 - stepx) / 2.0f) / dx : (mapy - y + (1 - stepy) / 2.0f) / dy;
+
+        if (cell == 'E')
         {
-            hit = true;
-            ray->hit_id = map[mapy][mapx];
+            if (ray->hit_enemy == ' ' && t > 0)
+            {
+                ray->hit_enemy = 'E';
+                ray->hit_enemy_distance = t;
+                ray->hit_enemy_x = x + dx * t;
+                ray->hit_enemy_y = y + dy * t;
+            }
         }
-        else if (map[mapy][mapx] == 'E')
+
+        if (cell == '#' || cell == '0')
         {
-            ray->hit_enemy = 'E';
-
-            float hit_dist;
-            if (side == 0)
-                hit_dist = (mapx - x + (1 - stepx) / 2.0f) / dx;
-            else
-                hit_dist = (mapy - y + (1 - stepy) / 2.0f) / dy;
-
-            ray->hit_enemy_distance = hit_dist;
-
-            // world hit position (NOT tile index)
-            float hit_world_x = x + dx * hit_dist;
-            float hit_world_y = y + dy * hit_dist;
-
-            ray->hit_enemy_x = hit_world_x;
-            ray->hit_enemy_y = hit_world_y;
+            ray->hit_id = cell;
+            ray->hit_side = side;
+            ray->hit_x = x + dx * t;
+            ray->hit_y = y + dy * t;
+            return t;
         }
     }
-    if (side == 0) 
-        return (mapx - x + (1 - stepx) / 2.0f) / dx;
-    return (mapy - y + (1 - stepy) / 2.0f) / dy;
 }
 
 void draw_ray(Window* window, Ray* ray, char** map, int offset_x, int offset_y, float distance)

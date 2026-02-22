@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="asset_drawer.c" />
+    <ClCompile Include="compressor.c" />
     <ClCompile Include="Enemy.c" />
     <ClCompile Include="Main.c" />
     <ClCompile Include="Player.c" />

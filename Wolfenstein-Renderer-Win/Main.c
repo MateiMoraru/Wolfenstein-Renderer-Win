@@ -254,6 +254,25 @@ SDL_Texture* map_build_texture(Window* window, char** map)
     return tex;
 }
 
+void sprite_draw_hud(Window* window, Sprite* sprite, float scale)
+{
+    if (!window || !sprite || !sprite->texture) return;
+
+    int w = (int)(sprite->width * scale);
+    int h = (int)(sprite->height * scale);
+
+    SDL_Rect dst;
+
+    dst.x = (window->width - w) / 2;
+
+    dst.y = window->height - h;
+
+    dst.w = w;
+    dst.h = h;
+
+    SDL_RenderCopy(window->renderer, sprite->texture, NULL, &dst);
+}
+
 int main()
 {
     srand(time(NULL));
@@ -309,7 +328,7 @@ int main()
     SDL_Texture* map_texture = map_build_texture(window, map);
 
     char fps_buffer[64];
-
+    
     float rotation_velocity = 0.0f;
     float rotation_smoothing = 16.0f;
 
@@ -319,16 +338,39 @@ int main()
     sound_init(&sfx_background_music);
     sound_play_loop(&sfx_background_music);
 
-    Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy1.him", 101, 11, 20);
+    Sound sfx_gun_explode = sound_load("assets/sfx/gun_fire.wav");
+    sound_init(&sfx_gun_explode);
 
-    window_set_fps(window, 144);
+    Sound sfx_die = sound_load("assets/sfx/enemy_die.wav");
+    sound_init(&sfx_die);
+
+    Sprite sprite_empty = sprite_load(window->renderer, "assets/sprites/empty.him", 11, 20);
+    Sprite sprite_enemy_ghost_hit = sprite_load(window->renderer, "assets/sprites/enemy_hit.him", 11, 20);
+    Sprite sprite_enemy_ghost = sprite_load(window->renderer, "assets/sprites/enemy.him", 11, 20);
+
+    Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy.him", 101, 11, 20);
+
+    window_set_fps(window, 160);
+
+    Sprite gun_model = sprite_load(window->renderer, "assets/sprites/gun_model.him", window->width / 2, window->height / 2);
+    Sprite gun_shoot = sprite_load(window->renderer, "assets/sprites/gun_explode.him", window->width / 2 - 128, window->height / 2 + 200);
+    Sprite gun_smoke = sprite_load(window->renderer, "assets/sprites/gun_smoke.him", 0, 0);
+
+    Smoke_puff smoke_puffs[MAX_SMOKE_PUFFS] = { 0 };
+
+    float gun_timer = 2;
+    bool shoot = false;
+
+    int middle_ray = NUMBER_RAYS / 2;
 
     while (window->running)
     {
-        //sound_update(&sfx_background_music);
+        shoot = false;
+
+        handle_mouse(&mouse);
+     
         while (window_poll_event(window))
         {
-
             if (window->event.type == WINDOW_QUIT)
             {
                 window_quit(window);
@@ -342,13 +384,25 @@ int main()
             {
                 map_save(map, map_load_file);
             }
+            else if (window->event.type == SDL_MOUSEBUTTONDOWN)
+            {
+                if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > 1.5f) // 1 sec delay? hmmm
+                {
+                    shoot = true;
+                    gun_timer = 0.0f;
+
+                    sound_play_modify(&sfx_gun_explode, 1.0f);
+                    shoot_and_spawn_smoke(map, &ray_caster, smoke_puffs);
+                }
+            }
 
         }
+
+        gun_timer += window->delta_time;
 
         handle_keys(map, &player, &ray_caster, window->delta_time);
         ray_caster_set_position(&ray_caster, player.x, player.y);
 
-        handle_mouse(&mouse);
         float target_rotation = mouse.dx * SENSITIVITY * window->delta_time;
 
         rotation_velocity += (target_rotation - rotation_velocity) * rotation_smoothing * window->delta_time;
@@ -359,6 +413,7 @@ int main()
         ray_caster_rotate(&ray_caster, rotation_step);
 
         renderer_update(renderer);
+        smoke_update(smoke_puffs, window->delta_time);
 
         //for (int i = 0; i < NUMBER_RAYS; i++) {
         //    renderer->ray_caster->rays[i].len = ray_hits_wall(map, &renderer->ray_caster->rays[i]);
@@ -369,12 +424,46 @@ int main()
 
         renderer_draw(renderer, window, &enemy_ghost);
 
+        if (enemy_ghost.active)
+        {
+            if (ray_caster.rays[middle_ray].hit_enemy == 'E' && gun_timer < 0.3f)
+            {
+                enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost_hit);
+
+                if (shoot)
+                    enemy_ghost.hits++;
+            }
+            else
+            {
+                enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost);
+            }
+        }
+        if (enemy_ghost.hits >= 3)
+        {
+            
+            if (gun_timer > 0.3f && enemy_ghost.active)
+            {
+                sound_play_modify(&sfx_die, 1.0f);
+                enemy_ghost.active = false;
+                enemy_set_sprite(&enemy_ghost, &sprite_empty);
+            }
+        }
+
         draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
         draw_rays(window, &ray_caster.rays, map, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
+        smoke_draw_all(window, &ray_caster, smoke_puffs, &gun_smoke);
+
         sprintf_s(fps_buffer, sizeof(fps_buffer), "FPS: %d", window->FPS);
         text_draw(window->renderer, &font, 10, 10, fps_buffer, 2, (SDL_Color) { 255, 255, 255, 255 });
+
+        if (gun_timer < 0.5f)
+        {
+            sprite_draw(window, &gun_shoot, 15);
+        }
+
+        sprite_draw_hud(window, &gun_model, 15);
 
         window_show(window);
 

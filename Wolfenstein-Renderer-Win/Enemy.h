@@ -17,6 +17,8 @@ typedef struct
 	bool drawn;
 	bool active;
 
+	int hits;
+
 	Sprite sprite;
 } Enemy;
 
@@ -24,5 +26,7 @@ Enemy enemy_init(Window* window, const char* filename, float x, float y, float s
 
 void enemy_draw(Window* window, Enemy* enemy);
 void enemy_draw_pos_size(Window* window, Enemy* enemy, float x, float y, float scale);
+
+void enemy_set_sprite(Enemy* enemy, Sprite* sprite);
 
 #endif

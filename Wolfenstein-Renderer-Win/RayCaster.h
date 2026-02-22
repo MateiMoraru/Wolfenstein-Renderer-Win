@@ -26,21 +26,22 @@
 typedef struct
 {
     float x;
-    float y;
+    float y;    
     float angle;
-    float slope;
 
     float len;
-    // y -y0 =slope(x - x0) + y0
-    // f(x) = slope(x - this->x) + y
-
-    bool collided;
 
     char hit_id;
-    char hit_enemy;
-    int hit_enemy_x;
-    int hit_enemy_y;
+
+    int hit_side;
+    float hit_x;
+    float hit_y;
+
+    char  hit_enemy;
     float hit_enemy_distance;
+    float hit_enemy_x;
+    float hit_enemy_y;
+    float hit_enemy_u;
 } Ray;
 
 typedef struct

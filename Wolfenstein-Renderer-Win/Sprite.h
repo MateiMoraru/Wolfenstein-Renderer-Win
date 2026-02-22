@@ -8,14 +8,22 @@
 
 typedef struct
 {
+	uint32_t* column;
+} SpriteColorColumn;
+
+typedef struct
+{
 	float x;
 	float y;
 
 	int width;
 	int height;
 
-	SDL_Texture* texture;
+	float shade;
 
+	SDL_Texture* texture;
+	SpriteColorColumn* columns;
+	SDL_Texture** tex_columns;
 } Sprite;
 
 Sprite sprite_load(SDL_Renderer* renderer, const char* filename, float x, float y);

@@ -10,3 +10,8 @@ After adding a minimap and smoothing player input
 Added sounds and wall types
 
 ![Demo](gifs/gif3.gif)
+
+
+Added shooting! no way!
+
+![Demo](gifs/gif4.gif)

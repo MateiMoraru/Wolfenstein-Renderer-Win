@@ -39,20 +39,6 @@ typedef struct Window
     float frame_delay;
 } Window;
 
-
-typedef struct
-{
-    int x;
-    int y;
-
-    int dx;
-    int dy;
-
-    Uint32 button;
-
-} Mouse;
-
-
 Window* window_create(int width, int height, char* name);
 void window_terminate(Window* window);
 void window_quit(Window* window);

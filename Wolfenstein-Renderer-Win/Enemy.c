@@ -12,6 +12,8 @@ Enemy enemy_init(Window* window, const char* filename, float x, float y, float s
 
 	enemy.active = true;
 
+	enemy.hits = 0;
+
 	return enemy;
 }
 
@@ -29,4 +31,9 @@ void enemy_draw_pos_size(Window* window, Enemy* enemy, float x, float y, float s
 
 	enemy->sprite.x = enemy->x;
 	enemy->sprite.y = enemy->y;
+}
+
+void enemy_set_sprite(Enemy* enemy, Sprite* sprite)
+{
+	enemy->sprite = *sprite;
 }

@@ -14,7 +14,6 @@
 #define SEARCH_WINDOW MB(4)
 #define LOOK_AHEAD_WINDOW MB(1)
 
-
 typedef struct
 {
     int length;
