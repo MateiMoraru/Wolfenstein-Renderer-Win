@@ -19,3 +19,5 @@ Added shooting! no way!
 
 ### Gameplay demo with sound, click the gif:)
 [![Gameplay demo](gifs/gif5.gif)](gifs/video1.mp4)
+
+![Demo](gifs/gif6.gif)

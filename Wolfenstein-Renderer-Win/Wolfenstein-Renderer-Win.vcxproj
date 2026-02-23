@@ -21,28 +21,36 @@
   <ItemGroup>
     <ClCompile Include="asset_drawer.c" />
     <ClCompile Include="AStar.c" />
+    <ClCompile Include="Button.c" />
     <ClCompile Include="compressor.c" />
+    <ClCompile Include="Door.c" />
     <ClCompile Include="Enemy.c" />
     <ClCompile Include="Main.c" />
+    <ClCompile Include="Menu.c" />
     <ClCompile Include="Player.c" />
     <ClCompile Include="RayCaster.c" />
     <ClCompile Include="Renderer.c" />
     <ClCompile Include="Sound.c" />
     <ClCompile Include="Sprite.c" />
     <ClCompile Include="Text.c" />
+    <ClCompile Include="Utils.c" />
     <ClCompile Include="Window.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asset_drawer.h" />
     <ClInclude Include="AStar.h" />
+    <ClInclude Include="Button.h" />
     <ClInclude Include="compressor.h" />
+    <ClInclude Include="Door.h" />
     <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Menu.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="RayCaster.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Sound.h" />
     <ClInclude Include="Sprite.h" />
     <ClInclude Include="Text.h" />
+    <ClInclude Include="Utils.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

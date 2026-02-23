@@ -9,6 +9,9 @@
 #include "Text.h"
 #include "Sound.h"
 #include "Enemy.h"
+#include "Menu.h"
+#include "Door.h"
+
 
 #define WIDTH -1
 #define HEIGHT -1
@@ -21,6 +24,14 @@
 #define NUM_FOOTSTEPS 4
 
 #define FONT_SIZE 16
+
+#define ID_BUTTON_QUIT 1
+#define ID_BUTTON_START 2
+
+#define ID_STATE_MAINMENU 3
+#define ID_STATE_INGAME 4
+
+#define ID_DOOR_YELLOW 5
 
 float footstep_timer = 0.0f;
 float footstep_interval = 0.5f;
@@ -45,6 +56,12 @@ void footstep_play()
     int idx = rand() % NUM_FOOTSTEPS;
     float vol = random_float(0.7f, 0.9f);
     sound_play_modify(&footstep_sounds[idx], vol);
+}
+
+void footstep_play_volume(float volume)
+{
+    int idx = rand() % NUM_FOOTSTEPS;
+    sound_play_modify(&footstep_sounds[idx], volume);
 }
 
 void footstep_free()
@@ -151,7 +168,7 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
 }
 
 
-void map_load(char** map, const char* map_load_file, Enemy* enemy)
+void map_load(char** map, const char* map_load_file, Enemy* enemy, Door* doors)
 {
     FILE* fin = fopen(map_load_file, "r");
     if (!fin)
@@ -163,6 +180,8 @@ void map_load(char** map, const char* map_load_file, Enemy* enemy)
     char buffer[1024];
     int y = 0;
 
+    int door_index = 0;
+
     while (fgets(buffer, sizeof(buffer), fin) && y < MAP_HEIGHT)
     {
         int x = 0;
@@ -173,6 +192,10 @@ void map_load(char** map, const char* map_load_file, Enemy* enemy)
             {
                 enemy->map_x = x;
                 enemy->map_y = y;
+            }
+            if (map[y][x] == '1')
+            {
+                doors[door_index++] = door_init(ID_DOOR_YELLOW, x, y);
             }
             x++;
         }
@@ -280,6 +303,32 @@ void sprite_draw_hud(Window* window, Sprite* sprite, float scale)
     SDL_RenderCopy(window->renderer, sprite->texture, NULL, &dst);
 }
 
+void player_init(Player* player, RayCaster* ray_caster, char** map)
+{
+    *player = (Player){
+        .x = 1,
+        .y = 1,
+        .vx = 0,
+        .vy = 0,
+        .speed = 15.0f,
+        .accel = 100,
+        .direction = 45,
+        .fov = 50,
+        .ammo = 13,
+        .died = false,
+        .found_key_yellow = false
+    };
+
+
+
+    ray_caster_init(player->x, player->y, player->direction, player->fov, ray_caster);
+
+    player_set_position(map, player, ray_caster, 4, 4);
+
+    ray_caster_set_position(ray_caster, player->x, player->y);
+}
+
+
 int main()
 {
     srand(time(NULL));
@@ -301,33 +350,20 @@ int main()
 
     map = map_init();
 
+    Door doors[MAX_DOORS];
+
     Sprite sprite_empty = sprite_load(window->renderer, "assets/sprites/empty.him", 11, 20);
     Sprite sprite_enemy_ghost_hit = sprite_load(window->renderer, "assets/sprites/enemy_hit.him", 11, 20);
     Sprite sprite_enemy_ghost = sprite_load(window->renderer, "assets/sprites/enemy.him", 11, 20);
 
     Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy.him", 101, 11, 20);
 
-    map_load(map, map_load_file, &enemy_ghost);
+    map_load(map, map_load_file, &enemy_ghost, doors);
 
-    Player player = {
-        .x = 63,
-        .y = 18,
-        .vx = 0,
-        .vy = 0,
-        .speed = 25.0f,
-        .accel = 100,
-        .direction = 45,
-        .fov = 60,
-        .ammo = 13
-    };
-
+    Player player;
     RayCaster ray_caster;
 
-    ray_caster_init(player.x, player.y, player.direction, player.fov, &ray_caster);
-
-    player_set_position(map, &player, &ray_caster, 4, 4);
-
-    ray_caster_set_position(&ray_caster, player.x, player.y);
+    player_init(&player, &ray_caster, map);
 
     Mouse mouse = { 0 };
 
@@ -350,26 +386,23 @@ int main()
     char fps_buffer[64];
     
     float rotation_velocity = 0.0f;
-    float rotation_smoothing = 16.0f;
+    float rotation_smoothing = 32.0f;
 
     footstep_init();
 
     Sound sfx_background_music = sound_load("assets/sfx/background_music.wav");
     sound_play_loop(&sfx_background_music);
-
     Sound sfx_gun_explode = sound_load("assets/sfx/gun_fire.wav");
-
     Sound sfx_die = sound_load("assets/sfx/enemy_die.wav");
-
     Sound sfx_step = sound_load("assets/sfx/step.wav");
+    Sound sfx_player_die = sound_load("assets/sfx/die.wav");
+    Sound sfx_unlock = sound_load("assets/sfx/unlock.wav");
 
     window_set_fps(window, 160);
 
     Sprite gun_model = sprite_load(window->renderer, "assets/sprites/gun_model.him", window->width / 2, window->height / 2);
     Sprite gun_shoot = sprite_load(window->renderer, "assets/sprites/gun_explode.him", window->width / 2 - 128, window->height / 2 + 200);
     Sprite gun_smoke = sprite_load(window->renderer, "assets/sprites/gun_smoke.him", 0, 0);
-
-    Smoke_puff smoke_puffs[MAX_SMOKE_PUFFS] = { 0 };
 
     float gun_timer = 2;
     bool shoot = false;
@@ -378,11 +411,40 @@ int main()
 
     float enemy_move_timer = 0;
 
+    Menu main_menu = main_menu_init(window, &font, ID_BUTTON_QUIT, ID_BUTTON_START);
+
+    int state = ID_STATE_MAINMENU;
+
+    float background_music_timer = 0;
+    float display_message_timer = 0;
+    
+    char message_buffer[64] = "Find all the keys in order to escape.";
+
     while (window->running)
     {
+        background_music_timer += window->delta_time;
+
+        if (background_music_timer >= 37)
+        {
+            background_music_timer = 0;
+            sound_close(&sfx_background_music);
+            sound_play_modify(&sfx_background_music, 1.0f);
+
+        }
+
+        if (state == ID_STATE_INGAME)
+        {
+            handle_mouse(&mouse);
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+        }
+        else
+        {
+
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+        }
+
         shoot = false;
 
-        handle_mouse(&mouse);
      
         while (window_poll_event(window))
         {
@@ -393,117 +455,164 @@ int main()
 
             if (window_get_key(window) == SDLK_ESCAPE)
             {
-                window_quit(window);
+                state = ID_STATE_MAINMENU;
+
             }
-            else if (window_get_key(window) == SDLK_1)
+            else if (state == ID_STATE_INGAME && window->event.type == SDL_MOUSEBUTTONDOWN)
             {
-                map_save(map, map_load_file);
-            }
-            else if (window->event.type == SDL_MOUSEBUTTONDOWN)
-            {
-                if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > 1.5f && player.ammo > 0) // 1 sec delay? hmmm
+                if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > 1.5f && player.ammo > 0) // 1.5 sec delay? hmmm
                 {
                     player.ammo--;
                     shoot = true;
                     gun_timer = 0.0f;
 
-                    sound_play_modify(&sfx_gun_explode, 1.0f);
-                    shoot_and_spawn_smoke(map, &ray_caster, smoke_puffs);
+                    sound_play_modify(&sfx_gun_explode, .7f);
+                    //shoot_and_spawn_smoke(map, &ray_caster, smoke_puffs);
                 }
             }
 
         }
 
-        enemy_move_timer += window->delta_time;
-
-        if (enemy_ghost.active && enemy_move_timer >= .4f)
+        if (state == ID_STATE_INGAME)
         {
-            float dx = player.x - enemy_ghost.map_x;
-            float dy = player.y - enemy_ghost.map_y;
+            enemy_move_timer += window->delta_time;
 
-            float dist_sq = dx * dx + dy * dy;
+            if (enemy_ghost.active && enemy_move_timer >= .4f)
+            {
+                float dx = player.x - enemy_ghost.map_x;
+                float dy = player.y - enemy_ghost.map_y;
 
-            float rolloff = 0.02f;
-            float volume_target = 1.0f / (1.0f + rolloff * dist_sq);
+                float dist = dist_sq(player.x, player.y, enemy_ghost.map_x, enemy_ghost.map_y);
 
-            float min_audible = 0.08f;
-            if (volume_target < min_audible) volume_target = 0.0f;
-            if (volume_target > 1.0f) volume_target = 1.0f;
+                float rolloff = 0.02f;
+                float volume_target = 1.0f / (1.0f + rolloff * dist);
 
-            sound_play_modify(&sfx_step, volume_target);
-            enemy_update(&enemy_ghost, window->delta_time, map, MAP_HEIGHT, MAP_WIDTH, player.x, player.y);
-            enemy_move_timer = 0;
+                float min_audible = 0.001f;
+                if (volume_target < min_audible) volume_target = 0.0f;
+                if (volume_target > 1.0f) volume_target = 1.0f;
+
+                volume_target *= 2;
+
+                footstep_play_volume(volume_target);
+                enemy_update(&enemy_ghost, window->delta_time, map, MAP_HEIGHT, MAP_WIDTH, player.x, player.y);
+                enemy_move_timer = 0;
+            }
+
+            gun_timer += window->delta_time;
+
+            handle_keys(map, &player, &ray_caster, window->delta_time);
+            ray_caster_set_position(&ray_caster, player.x, player.y);
+
+            // F this gotta use comments
+            // Here it checks if player got key this frame
+
+            if (player_check_keys(&player, map) == 'Y' && !player.found_key_yellow)
+            {
+                sound_play_modify(&sfx_unlock, 0.7f);
+                player.found_key_yellow = true;
+                doors_unlock(ID_DOOR_YELLOW, map, doors);
+
+                display_message_timer = 0;
+                snprintf(message_buffer, 64, "You got the yellow key! (1/4)");
+            }
+
+            float target_rotation = mouse.dx * SENSITIVITY * window->delta_time;
+
+            rotation_velocity += (target_rotation - rotation_velocity) * rotation_smoothing * window->delta_time;
+
+            float rotation_step = rotation_velocity * window->delta_time;
+
+            player.direction += rotation_step;
+            ray_caster_rotate(&ray_caster, rotation_step);
+
+            renderer_update(renderer);
+            //smoke_update(smoke_puffs, window->delta_time);
+
+            //for (int i = 0; i < NUMBER_RAYS; i++) {
+            //    renderer->ray_caster->rays[i].len = ray_hits_wall(map, &renderer->ray_caster->rays[i]);
+            //}
         }
-
-        gun_timer += window->delta_time;
-
-        handle_keys(map, &player, &ray_caster, window->delta_time);
-        ray_caster_set_position(&ray_caster, player.x, player.y);
-
-        float target_rotation = mouse.dx * SENSITIVITY * window->delta_time;
-
-        rotation_velocity += (target_rotation - rotation_velocity) * rotation_smoothing * window->delta_time;
-
-        float rotation_step = rotation_velocity * window->delta_time;
-
-        player.direction += rotation_step;
-        ray_caster_rotate(&ray_caster, rotation_step);
-
-        renderer_update(renderer);
-        smoke_update(smoke_puffs, window->delta_time);
-
-        //for (int i = 0; i < NUMBER_RAYS; i++) {
-        //    renderer->ray_caster->rays[i].len = ray_hits_wall(map, &renderer->ray_caster->rays[i]);
-        //}
 
         window_set_draw_color(window, color_to_hex(&COLOR_BACKGROUND));
         window_clear(window);
 
-        renderer_draw(renderer, window, &enemy_ghost);
-
-        if (enemy_ghost.active)
+        if (state == ID_STATE_INGAME)
         {
-            if (ray_caster.rays[middle_ray].hit_enemy == 'E' && gun_timer < 0.3f)
-            {
-                enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost_hit);
+            renderer_draw(renderer, window, &enemy_ghost);
 
-                if (shoot)
-                    enemy_ghost.hits++;
-            }
-            else
+            if (enemy_ghost.active)
             {
-                enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost);
+                if (dist_sq(enemy_ghost.map_x, enemy_ghost.map_y, player.x, player.y) < 1.41f)
+                {
+                    state = ID_STATE_MAINMENU;
+                    player.died = true;
+                    sound_play_modify(&sfx_player_die, 0.8f);
+                }
+
+                if (ray_caster.rays[middle_ray].hit_enemy == 'E' && gun_timer < 0.3f)
+                {
+                    enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost_hit);
+
+                    if (shoot)
+                        enemy_ghost.hits++;
+                }
+                else
+                {
+                    enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost);
+                }
+            }
+            if (enemy_ghost.hits >= 3)
+            {
+
+                if (gun_timer > 0.3f && enemy_ghost.active)
+                {
+                    sound_play_modify(&sfx_die, 1.0f);
+                    enemy_ghost.active = false;
+                    enemy_set_sprite(&enemy_ghost, &sprite_empty);
+                }
+            }
+
+            draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
+
+            draw_rays(window, &ray_caster.rays, map, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
+
+            //smoke_draw_all(window, &ray_caster, smoke_puffs, &gun_smoke);
+
+            sprintf_s(fps_buffer, sizeof(fps_buffer), "FPS: %d", window->FPS);
+            text_draw(window->renderer, &font, 10, 10, fps_buffer, 2, (SDL_Color) { 255, 255, 255, 255 });
+
+            sprintf_s(fps_buffer, sizeof(fps_buffer), "AMMO: %d", player.ammo);
+            text_draw_shadow(window->renderer, &font, window->width / 2 - strlen(fps_buffer) * FONT_SIZE * 8 / 2, window->height - FONT_SIZE, fps_buffer, 1, (SDL_Color) { 255, 255, 255, 255 });
+
+            display_message_timer += window->delta_time;
+
+            if (display_message_timer < 2.0f)
+            {
+
+                text_draw_shadow(window->renderer, &font, 0, window->height - FONT_SIZE, message_buffer, 1, (SDL_Color) { 255, 255, 255, 255 });
+            }
+
+            if (gun_timer < 0.5f)
+            {
+                sprite_draw(window, &gun_shoot, 15);
+            }
+
+            sprite_draw_hud(window, &gun_model, 15);
+        }
+        else
+        {
+            int button = menu_draw(&main_menu);
+
+            if (button == ID_BUTTON_QUIT) window->running = false;
+            if (button == ID_BUTTON_START) 
+            {
+                if (player.died == true)
+                {
+                    player_init(&player, &ray_caster, map);
+                }
+                state = ID_STATE_INGAME;
             }
         }
-        if (enemy_ghost.hits >= 3)
-        {
-            
-            if (gun_timer > 0.3f && enemy_ghost.active)
-            {
-                sound_play_modify(&sfx_die, 1.0f);
-                enemy_ghost.active = false;
-                enemy_set_sprite(&enemy_ghost, &sprite_empty);
-            }
-        }
-
-        draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
-
-        draw_rays(window, &ray_caster.rays, map, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
-
-        //smoke_draw_all(window, &ray_caster, smoke_puffs, &gun_smoke);
-
-        sprintf_s(fps_buffer, sizeof(fps_buffer), "FPS: %d", window->FPS);
-        text_draw(window->renderer, &font, 10, 10, fps_buffer, 2, (SDL_Color) { 255, 255, 255, 255 });
-
-        sprintf_s(fps_buffer, sizeof(fps_buffer), "AMMO: %d", player.ammo);
-        text_draw_shadow(window->renderer, &font, 0, window->height - FONT_SIZE, fps_buffer, 1, (SDL_Color) { 255, 255, 255, 255 });
-
-        if (gun_timer < 0.5f)
-        {
-            sprite_draw(window, &gun_shoot, 15);
-        }
-
-        sprite_draw_hud(window, &gun_model, 15);
 
         window_show(window);
 

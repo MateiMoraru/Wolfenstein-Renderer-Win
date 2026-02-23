@@ -3,6 +3,7 @@
 const Color4 COLOR_BACKGROUND = { 10, 10, 20, 255 };
 const Color4 COLOR_WALL = { 101, 85, 115, 255 };
 const Color4 COLOR_SEPARATOR = { 100, 93, 120, 255 };
+const Color4 COLOR_DOOR_YELLOW = { 199, 191, 80, 255 };
 
 void smoke_spawn(Smoke_puff* puffs, float x, float y)
 {
@@ -148,6 +149,8 @@ Column compute_column(int max_height, Ray* ray)
     Color4 color;
     if (ray->hit_id == '#')
         color = COLOR_WALL;
+    else if (ray->hit_id == '1' || ray->hit_key == 'Y')
+        color = COLOR_DOOR_YELLOW;
     else
         color = COLOR_SEPARATOR;
 
@@ -164,9 +167,9 @@ Column compute_column(int max_height, Ray* ray)
         height = 2;
     float mult = (float)COLOR_MULT / (float)ray->len;
 
-    if (mult > .8f)
+    if (mult > 1)
     {
-        mult = .8f;
+        mult = 1;
 
     }
     color.r *= mult;
@@ -231,6 +234,17 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy)
 
         SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
         SDL_RenderFillRect(window->renderer, &rect);
+
+        if (ray.hit_key != ' ')
+        {
+            rect.y += col.height / 2;
+            rect.h = col.height / 20;
+
+            col.color = COLOR_DOOR_YELLOW;
+
+            SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
+            SDL_RenderFillRect(window->renderer, &rect);
+        }
 
         float dx = cosf(ray.angle);
         float dy = sinf(ray.angle);

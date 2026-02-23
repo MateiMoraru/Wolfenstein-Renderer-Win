@@ -1,5 +1,10 @@
 #include "Player.h"
 
+static const int directions[8][2] = {
+    {-1, -1}, {0, -1}, {1, -1},
+    {-1,  0},          {1,  0},
+    {-1,  1}, {0,  1}, {1,  1}
+};
 
 void player_set_position(char** map, Player* player, RayCaster* ray_caster, float x, float y)
 {
@@ -50,4 +55,27 @@ void player_move(char** map, Player* player, RayCaster* ray_caster, float forwar
     }
 
     ray_caster_set_position(ray_caster, player->x, player->y);
+}
+
+
+char player_check_keys(Player* player, char** map)
+{
+    int x = player->x;
+    int y = player->y;
+
+    for (int i = 0; i < 8; i++)
+    {
+        int dx = x - directions[i][0];
+        int dy = y - directions[i][1];
+
+        if (dx < 0 && dy < 0 && dx > MAP_WIDTH && dy > MAP_HEIGHT)
+            continue;
+
+        char cell = map[dy][dx];
+        if (cell == 'Y')
+        {
+            map[dy][dx] = ' ';
+            return cell;
+        }
+    }
 }

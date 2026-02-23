@@ -25,9 +25,16 @@ typedef struct
     float fov;
 
     int ammo;
+
+    float died;
+
+    bool found_key_yellow;
 } Player;
 
 void player_set_position(char** map, Player* player, RayCaster* ray_caster, float x, float y);
 
 void player_move(char** map, Player* player, RayCaster* ray_caster, float forward, float strafe, float delta_time);
+
+char player_check_keys(Player* player, char** map);
+
 #endif

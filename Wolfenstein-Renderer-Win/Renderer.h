@@ -9,13 +9,14 @@
 #define HEIGHT_MULT 4.0f
 #define COLOR_MULT 5.0f
 #define MAX_SEE_DISTANCE 200
-#define MIN_DIST_MULT 0.001f
+#define MIN_DIST_MULT 0.00001f
 
 #define MAX_SMOKE_PUFFS 64
 
 extern const Color4 COLOR_BACKGROUND;
 extern const Color4 COLOR_WALL;
 extern const Color4 COLOR_SEPARATOR;
+extern const Color4 COLOR_DOOR_YELLOW;
 
 typedef struct Smoke_puff
 {

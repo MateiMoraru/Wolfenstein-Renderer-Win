@@ -50,6 +50,8 @@ float ray_hits_wall(char** map, Ray* ray)
     ray->hit_enemy_y = -1;
     ray->hit_enemy_u = 0.0f;
 
+    ray->hit_key = ' ';
+
     ray->hit_x = -1.0f;
     ray->hit_y = -1.0f;
     ray->hit_side = 0;
@@ -107,7 +109,12 @@ float ray_hits_wall(char** map, Ray* ray)
             }
         }
 
-        if (cell == '#' || cell == '0')
+        else if (cell == 'Y')
+        {
+            ray->hit_key = 'Y';
+        }
+
+        else if (cell == '#' || cell == '0' || cell == '1')
         {
             ray->hit_id = cell;
             ray->hit_side = side;
