@@ -6,6 +6,33 @@
 SDL_AudioDeviceID sfx_device = 0;
 SDL_AudioDeviceID audio_device = 0;
 
+//static int open_audio_device_once(void)
+//{
+//    if (g_audio_device != 0) return 1;
+//
+//    SDL_AudioSpec want;
+//    SDL_zero(want);
+//    want.freq = 48000;
+//    want.format = AUDIO_F32SYS;
+//    want.channels = 2;
+//    want.samples = 1024;
+//    want.callback = NULL;
+//
+//    SDL_AudioSpec have;
+//    SDL_zero(have);
+//
+//    g_audio_device = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+//    if (g_audio_device == 0)
+//    {
+//        printf("SDL_OpenAudioDevice failed: %s\n", SDL_GetError());
+//        return 0;
+//    }
+//
+//    g_device_spec = have;
+//    SDL_PauseAudioDevice(g_audio_device, 0);
+//    return 1;
+//}
+
 void sound_init()
 {
     if (SDL_WasInit(SDL_INIT_AUDIO) == 0)
@@ -23,12 +50,14 @@ Sound sound_load(char* filename)
     memset(&sound, 0, sizeof(Sound));
 
     if (SDL_LoadWAV(filename, &sound.wav_spec, &sound.wav_buffer, &sound.wav_length) == NULL) {
-        printf("Failed to load WAV %s: %s\n", filename, SDL_GetError());
+        printf("sound_load: Failed to load WAV %s: %s\n", filename, SDL_GetError());
         sound.wav_length = 0;
         sound.wav_buffer = NULL;
         sound.device = 0;
         return sound;
     }
+
+    printf("sound_load: Loaded sound: %s\n", filename);
 
     sound.device = 0;
     return sound;
@@ -68,6 +97,11 @@ void sound_play_modify(Sound* sound, float volume)
     SDL_QueueAudio(sound->device, buffer, sound->wav_length);
 
     free(buffer);
+}
+
+void sound_play(Sound* sound)
+{
+    sound_play_modify(sound, 1.0f);
 }
 
 void sound_play_loop(Sound* sound)

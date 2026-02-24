@@ -257,7 +257,7 @@ void text_draw_shadow(SDL_Renderer* renderer, Font* font, int x, int y, const ch
         return;
     }
 
-    SDL_Color shadow = (SDL_Color){ 80, 80, 80, color.a };
+    SDL_Color shadow = (SDL_Color){ color.r * 0.1, color.g * 0.1, color.b * 0.1, color.a };
 
     int cursor_x = x;
     int cursor_y = y;

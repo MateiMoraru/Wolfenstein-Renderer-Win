@@ -1,33 +1,50 @@
 ﻿  Main.c
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\RayCaster.h(13,9): warning C4005: 'M_PI': macro redefinition
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\RayCaster.h(20,9): warning C4005: 'M_PI': macro redefinition
   (compiling source file 'Main.c')
       C:\SDL2\include\SDL_stdinc.h(623,9):
       see previous definition of 'M_PI'
   
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(19,9): warning C4005: 'MAP_WIDTH': macro redefinition
-      C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\RayCaster.h(20,9):
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(38,9): warning C4005: 'MAP_WIDTH': macro redefinition
+      C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\RayCaster.h(27,9):
       see previous definition of 'MAP_WIDTH'
   
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(20,9): warning C4005: 'MAP_HEIGHT': macro redefinition
-      C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\RayCaster.h(21,9):
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(39,9): warning C4005: 'MAP_HEIGHT': macro redefinition
+      C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\RayCaster.h(28,9):
       see previous definition of 'MAP_HEIGHT'
   
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(132,17): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(133,17): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(324,27): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(324,38): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(324,49): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(324,68): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(334,11): warning C4013: 'time' undefined; assuming extern returning int
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(403,100): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(403,120): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(404,106): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(404,132): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(485,69): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(485,88): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(545,40): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(545,59): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(577,31): warning C4047: 'function': 'Ray *' differs in levels of indirection from 'Ray (*)[1500]'
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(577,31): warning C4024: 'draw_rays': different types for formal and actual parameter 2
-C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(585,73): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(166,40): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(166,60): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(174,17): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(175,17): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(285,26): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(286,26): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(318,21): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(319,21): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(293,27): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(294,28): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(305,26): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(305,33): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(368,27): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(368,38): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(368,49): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(368,68): warning C4244: 'function': conversion from 'float' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(382,63): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(382,83): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(454,32): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(454,52): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(497,64): warning C4267: 'function': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(513,11): warning C4013: 'time' undefined; assuming extern returning int
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(551,100): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(551,120): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(552,106): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(552,132): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(713,42): warning C4133: 'function': incompatible types - from 'float *' to 'int *'
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(735,59): warning C4047: 'function': 'Sprite **' differs in levels of indirection from 'Sprite [4]'
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(735,59): warning C4024: 'renderer_draw': different types for formal and actual parameter 4
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(740,57): warning C4244: 'function': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(740,93): warning C4244: 'function': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(742,31): warning C4047: 'function': 'Ray *' differs in levels of indirection from 'Ray (*)[512]'
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(742,31): warning C4024: 'draw_rays': different types for formal and actual parameter 2
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(742,68): warning C4244: 'function': conversion from 'double' to 'int', possible loss of data
+C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\Wolfenstein-Renderer-Win\Main.c(742,104): warning C4244: 'function': conversion from 'double' to 'int', possible loss of data
   Wolfenstein-Renderer-Win.vcxproj -> C:\Users\matei\Desktop\programare\C\Wolfenstein-Renderer-Win\x64\Debug\Wolfenstein-Renderer-Win.exe

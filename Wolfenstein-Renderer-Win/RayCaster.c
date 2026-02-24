@@ -24,6 +24,7 @@ void ray_caster_init(int x, int y, int direction, int fov, RayCaster* ray_caster
         ray_caster->rays[i].x = x;
         ray_caster->rays[i].y = y;
         ray_caster->rays[i].angle = angle;
+        ray_caster->rays[i].hit_enemy = ' ';
     }
 }
 
@@ -109,12 +110,15 @@ float ray_hits_wall(char** map, Ray* ray)
             }
         }
 
-        else if (cell == 'Y')
+        else if (cell == 'Y' || cell == 'R' || cell == 'G' || cell == 'B')
         {
-            ray->hit_key = 'Y';
+            ray->hit_key = cell;
+            ray->hit_key_distance = t;
+            ray->hit_key_x = (float)mapx + 0.5f;
+            ray->hit_key_y = (float)mapy + 0.5f;
         }
 
-        else if (cell == '#' || cell == '0' || cell == '1')
+        else if (cell == '#' || cell == '0' || cell == '1' || cell == '2' || cell == '3' || cell == '4')
         {
             ray->hit_id = cell;
             ray->hit_side = side;
@@ -147,4 +151,18 @@ void draw_rays(Window* window, Ray* rays, char** map, int offset_x, int offset_y
         if (i % RAY_DISPLAY_INTERVAL == 0)
             draw_ray(window, &rays[i], map, offset_x, offset_y, distance);
     }
+}
+
+
+bool ray_caster_hit_enemy(RayCaster* ray_caster)
+{
+    for (int i = 0; i < NUMBER_RAYS; i += RAY_CHECK_SKIP_INTERVAL)
+    {
+        if (ray_caster->rays[i].hit_enemy != ' ')
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

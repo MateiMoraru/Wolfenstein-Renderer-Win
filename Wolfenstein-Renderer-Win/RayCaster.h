@@ -1,14 +1,21 @@
+/*
+        RAYCASTER
+
+        Used DDA >:(
+*/
+
+
 #ifndef RAYCASTER_H
 #define RAYCASTER_H
 
 #include "Window.h"
 
-#define NUMBER_RAYS 1500
+#define NUMBER_RAYS 512
 #define RAY_LEN 512
 
 #define SENSITIVITY 160
 
-#define SCALE 1
+#define SCALE 2.0
 
 #define M_PI 3.14156
 
@@ -21,29 +28,38 @@
 #define MAP_HEIGHT 256
 #endif
 
+#define RAY_CHECK_SKIP_INTERVAL 3
+
 #define RAY_DISPLAY_INTERVAL 10
 
 typedef struct
 {
+    // Kind of grid dependent?
     float x;
     float y;    
     float angle;
 
     float len;
 
+    // Wall detection
     char hit_id;
-
     int hit_side;
     float hit_x;
     float hit_y;
 
+    // Enemy detection
     char  hit_enemy;
     float hit_enemy_distance;
     float hit_enemy_x;
     float hit_enemy_y;
     float hit_enemy_u;
 
+    // Key detection
     char hit_key;
+    float hit_key_distance;
+    float hit_key_x;
+    float hit_key_y;
+
 } Ray;
 
 typedef struct
@@ -54,6 +70,8 @@ typedef struct
     float fov;
     Ray rays[NUMBER_RAYS];
 } RayCaster;
+
+// Creates rays :)
 
 void ray_caster_init(int x, int y, int direction, int fov, RayCaster* ray_caster);
 
@@ -67,5 +85,9 @@ void draw_ray(Window* window, Ray* ray, char** map, float distance);
 void draw_rays(Window* window, Ray* rays, char** map, int x, int y);
 
 float ray_hits_wall(char** map, Ray* ray);
+
+
+// This function checks if the enemy is on screen
+bool ray_caster_hit_enemy(RayCaster* ray_caster);
 
 #endif

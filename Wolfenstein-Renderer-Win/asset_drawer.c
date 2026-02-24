@@ -378,8 +378,12 @@ void load_pixels(Color4*** pixels, int* width, int* height, const char* filename
     //*width = file_w;
     //*height = file_h;
 
-    printf("load_pixels: loaded '%s' (%dx%d)\n", filename, file_w, file_h);
-
     free(decompressed);
     free(compressed);
+}
+
+
+SDL_Color to_sdl_color(Color4* color)
+{
+    return (SDL_Color) { color->r, color->g, color->b, color->a };
 }

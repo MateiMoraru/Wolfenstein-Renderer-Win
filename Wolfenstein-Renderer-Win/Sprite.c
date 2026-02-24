@@ -18,12 +18,20 @@ Sprite sprite_load(SDL_Renderer* renderer, const char* filename, float x, float 
     sprite.shade = 1.0f;
 
     FILE* fin = fopen(filename, "r");
+    if (!fin)
+    {
+        printf("sprite_load: Failed to read from file: %s\n", filename);
+        return sprite;
+    }
     fscanf(fin, "%d %d", &sprite.width, &sprite.height);
     fclose(fin);
 
     Color4** pixels = NULL;
     load_pixels(&pixels, &sprite.width, &sprite.height, filename);
     if (!pixels) return sprite;
+
+
+    printf("sprite_load: Loaded sprite %s (%dx%d)\n", filename, sprite.width, sprite.height);
 
     sprite.tex_columns = malloc(sizeof(SDL_Texture*) * sprite.width);
     if (!sprite.tex_columns) {

@@ -1,3 +1,22 @@
+/*
+    A copy of the Wolfenstein renderer
+
+
+
+
+
+
+
+
+    Keys in the map.txt:
+        0->4       = LOCKED WALL
+        Y, R, G, B = KEY
+
+
+*/
+
+
+
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -21,7 +40,8 @@
 
 #define DEG_TO_RAD(angle) ((angle) * M_PI / 180.0f)
 
-#define NUM_FOOTSTEPS 4
+#define NUMBER_FOOTSTEPS 4
+#define NUMBER_SOUNDS 16
 
 #define FONT_SIZE 16
 
@@ -33,10 +53,22 @@
 
 #define ID_DOOR_YELLOW 5
 
-float footstep_timer = 0.0f;
-float footstep_interval = 0.5f;
+#define BUFFER_LEN 128
 
-Sound footstep_sounds[NUM_FOOTSTEPS];
+#define MIN_DISTANCE_DEATH 3.0f
+#define MIN_DISTANCE_ENEMY_FOLLOW 3700
+
+
+char* buffer_found_key_yellow = "Yellow key found! 3 More to go.";
+char* buffer_found_key_red = "Red key found! 2 More to go.";
+char* buffer_found_key_green = "Green key found! 1 More to go.";
+char* buffer_found_key_blue = "Blue key found! You can now escape!";
+
+float footstep_timer = 0.0f;
+float footstep_interval = 0.8f;
+
+static Sound footstep_sounds[NUMBER_FOOTSTEPS];
+static Sound all_sounds[NUMBER_SOUNDS];
 
 float random_float(float min, float max)
 {
@@ -53,22 +85,32 @@ void footstep_init()
 
 void footstep_play()
 {
-    int idx = rand() % NUM_FOOTSTEPS;
+    int idx = rand() % NUMBER_FOOTSTEPS;
     float vol = random_float(0.7f, 0.9f);
     sound_play_modify(&footstep_sounds[idx], vol);
 }
 
 void footstep_play_volume(float volume)
 {
-    int idx = rand() % NUM_FOOTSTEPS;
+    int idx = rand() % NUMBER_FOOTSTEPS;
     sound_play_modify(&footstep_sounds[idx], volume);
 }
 
 void footstep_free()
 {
-    for (int i = 0; i < NUM_FOOTSTEPS; i++)
+    for (int i = 0; i < NUMBER_FOOTSTEPS; i++)
         sound_free(&footstep_sounds[i]);
     sound_close();
+}
+
+void sounds_free()
+{
+    footstep_free();
+
+    for (int i = 0; i < NUMBER_SOUNDS; i++)
+    {
+        sounds_free(&all_sounds[i]);
+    }
 }
 
 char** map_init()
@@ -157,11 +199,11 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
 
     if (forward != 0.0f || strafe != 0.0f)
     {
-        footstep_timer -= dt;
-        if (footstep_timer <= 0.0f)
+        footstep_timer += dt;
+        if (footstep_timer > footstep_interval)
         {
             footstep_play();
-            footstep_timer = footstep_interval;
+            footstep_timer = 0;
         }
     }
     player_move(map, player, ray_caster, forward, strafe, dt); 
@@ -310,16 +352,18 @@ void player_init(Player* player, RayCaster* ray_caster, char** map)
         .y = 1,
         .vx = 0,
         .vy = 0,
-        .speed = 15.0f,
+        .speed = 7.0f,
         .accel = 100,
         .direction = 45,
-        .fov = 50,
+        .fov = 100,
         .ammo = 13,
         .died = false,
-        .found_key_yellow = false
+        .found_key_yellow = false,
+        .found_key_red = false,
+        .found_key_green = false,
+        .found_key_blue = false,
+        .seen_enemy = false
     };
-
-
 
     ray_caster_init(player->x, player->y, player->direction, player->fov, ray_caster);
 
@@ -328,9 +372,144 @@ void player_init(Player* player, RayCaster* ray_caster, char** map)
     ray_caster_set_position(ray_caster, player->x, player->y);
 }
 
+void update_enemy(Window* window, Enemy* enemy_ghost, Player* player, float* enemy_move_timer, char** map)
+{
+    if (enemy_ghost->active && *enemy_move_timer >= .4f)
+    {
+        float dx = player->x - enemy_ghost->map_x;
+        float dy = player->y - enemy_ghost->map_y;
+
+        float dist = dist_sq(player->x, player->y, enemy_ghost->map_x, enemy_ghost->map_y);
+
+        if (dist < MIN_DISTANCE_ENEMY_FOLLOW)
+        {
+            float rolloff = 0.02f;
+            float volume_target = 1.0f / (1.0f + rolloff * dist);
+
+            float min_audible = 0.001f;
+            if (volume_target < min_audible) volume_target = 0.0f;
+            if (volume_target > 1.0f) volume_target = 1.0f;
+
+            volume_target *= 2;
+
+            footstep_play_volume(volume_target);
+            enemy_update(enemy_ghost, window->delta_time, map, MAP_HEIGHT, MAP_WIDTH, player->x, player->y);
+            *enemy_move_timer = 0;
+        }
+    }
+}
+
+void check_for_keys(Player* player, char**map, int* display_message_timer, char* buffer_message, Sound* sfx_unlock, Door* doors)
+{
+    char check = player_check_keys(player, map);
+    if ((check == 'Y' || check == 'R' || check == 'G' || check == 'B') && !player->found_key_yellow)
+    {
+        sound_play_modify(sfx_unlock, 0.7f);
+        doors_unlock(ID_DOOR_YELLOW, map, doors);
+
+        *display_message_timer = 0;
+
+        if (check == 'Y')
+        {
+            snprintf(buffer_message, 64, buffer_found_key_yellow);
+            player->found_key_yellow = true;
+        }
+        else if (check == 'R')
+        {
+            snprintf(buffer_message, 64, buffer_found_key_red);
+            player->found_key_red = true;
+        }
+        else if (check == 'G')
+        {
+            snprintf(buffer_message, 64, buffer_found_key_green);
+            player->found_key_green = true;
+        }
+        else if (check == 'B')
+        {
+            snprintf(buffer_message, 64, buffer_found_key_blue);
+
+            player->found_key_blue = true;
+        }
+    }
+}
+
+void handle_renderer_rotation(Window* window, Renderer* renderer, Mouse* mouse, RayCaster* ray_caster, Player* player, float* rotation_velocity, float rotation_smoothing)
+{
+    float target_rotation = mouse->dx * SENSITIVITY * window->delta_time;
+
+    *rotation_velocity += (target_rotation - *rotation_velocity) * rotation_smoothing * window->delta_time;
+
+    float rotation_step = *rotation_velocity * window->delta_time;
+
+    player->direction += rotation_step;
+    ray_caster_rotate(ray_caster, rotation_step);
+
+    renderer_update(renderer);
+}
+
+void handle_enemy(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sound* sfx_player_die, int* state, int middle_ray, float* gun_timer, bool shoot, Sprite* sprite_enemy_ghost_hit, Sprite* sprite_enemy_ghost)
+{
+    if (enemy_ghost->active)
+    {
+        if (dist_sq(enemy_ghost->map_x, enemy_ghost->map_y, player->x, player->y) < MIN_DISTANCE_DEATH)
+        {
+            *state = ID_STATE_MAINMENU;
+            player->died = true;
+            sound_play_modify(sfx_player_die, 0.8f);
+        }
+
+        if (ray_caster->rays[middle_ray].hit_enemy == 'E' && *gun_timer < 0.3f)
+        {
+            enemy_set_sprite(enemy_ghost, sprite_enemy_ghost_hit);
+
+            if (shoot)
+                enemy_ghost->hits++;
+        }
+        else
+        {
+            enemy_set_sprite(enemy_ghost, sprite_enemy_ghost);
+        }
+    }
+    
+}
+
+void handle_enemy_die(Enemy* enemy_ghost, Sound* sfx_die, Sprite* sprite_empty, char** map, float* gun_timer)
+{
+    if (enemy_ghost->hits >= 3)
+    {
+
+        if (*gun_timer > 0.3f && enemy_ghost->active)
+        {
+            sound_play_modify(sfx_die, 1.0f);
+            enemy_ghost->active = false;
+            enemy_set_sprite(enemy_ghost, sprite_empty);
+            map[enemy_ghost->map_y][enemy_ghost->map_x] = ' ';
+        }
+    }
+}
+
+void draw_hud_text(Window* window, Font* font, int ammo, float* display_message_timer, char* buffer, char* buffer_message)
+{
+    sprintf_s(buffer, BUFFER_LEN, "FPS: %d", window->FPS);
+    text_draw(window->renderer, font, 10, 10, buffer, 2, (SDL_Color) { 255, 255, 255, 255 });
+
+    sprintf_s(buffer, BUFFER_LEN, "AMMO: %d", ammo);
+    text_draw_shadow(window->renderer, font, window->width / 2 - strlen(buffer) * FONT_SIZE * 8 / 2, window->height - FONT_SIZE, buffer, 1, (SDL_Color) { 105, 8, 20, 255 });
+
+    *display_message_timer += window->delta_time;
+
+    if (*display_message_timer < 5.0f)
+    {
+
+        text_draw_shadow(window->renderer, font, 0, window->height - FONT_SIZE, buffer_message, 1, (SDL_Color) { 255, 255, 255, 255 });
+    }
+}
 
 int main()
 {
+    const char* map_load_file = "assets/data/map.txt";
+    
+    // Srand, not like the wolfenstein lookup 
     srand(time(NULL));
 
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER) != 0) {
@@ -341,22 +520,51 @@ int main()
     sound_init();
 
     Window* window = window_create(-1, -1, "Domm");
+
+    if (!window)
+    {
+        printf("Failed to create Window object :(\n");
+        return 1;
+    }
+    window_set_fps(window, 144);
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
+    printf("Window created successfully (width, height: %d, %d)\n", window->width, window->height);
 
-    const char* map_load_file = "assets/data/map.txt";
+    char** map = map_init();
 
-    char** map;
-
-    map = map_init();
+    if (!map)
+    {
+        printf("Failed to create map :(\n");
+        return 1;
+    }
 
     Door doors[MAX_DOORS];
+
+
+    printf("\n\t\tLOADING TEXTURES\n");
 
     Sprite sprite_empty = sprite_load(window->renderer, "assets/sprites/empty.him", 11, 20);
     Sprite sprite_enemy_ghost_hit = sprite_load(window->renderer, "assets/sprites/enemy_hit.him", 11, 20);
     Sprite sprite_enemy_ghost = sprite_load(window->renderer, "assets/sprites/enemy.him", 11, 20);
 
+    Sprite gun_model = sprite_load(window->renderer, "assets/sprites/gun_model.him", window->width / 2, window->height / 2);
+    Sprite gun_shoot = sprite_load(window->renderer, "assets/sprites/gun_explode.him", window->width / 2 - 128, window->height / 2 + 200);
+    Sprite gun_smoke = sprite_load(window->renderer, "assets/sprites/gun_smoke.him", 0, 0);
+
     Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy.him", 101, 11, 20);
+
+    Sprite keys[4] =
+    {
+        sprite_load(window->renderer, "assets/sprites/key_yellow.him", 0, 0),
+        sprite_load(window->renderer, "assets/sprites/key_red.him", 0, 0),
+        sprite_load(window->renderer, "assets/sprites/key_green.him", 0, 0),
+        sprite_load(window->renderer, "assets/sprites/key_blue.him", 0, 0)
+    };
+
+    printf("\n");
+
+    // Loading map after initing everything needed
 
     map_load(map, map_load_file, &enemy_ghost, doors);
 
@@ -365,29 +573,37 @@ int main()
 
     player_init(&player, &ray_caster, map);
 
+    printf("Player created\n");
+
     Mouse mouse = { 0 };
 
     mouse.x = WIDTH / 2;
     mouse.y = HEIGHT / 2;
 
-    Font font = {
-        .width = 8,
-        .height = 8,
-        .data = (const uint8_t(*)[8]) font8x8_basic
-    };
+    // I hate this font
 
-    font_init(window->renderer, &font, font8x8_basic, FONT_SIZE / 8, (SDL_Color) { 138, 22, 4, 255 });
+    Font font = { 0 };
+    font.width = 8;
+    font.height = 8;
+    font.data = (const uint8_t(*)[8])font8x8_basic;
 
+    font_init(window->renderer, &font, font8x8_basic, FONT_SIZE / 8, (SDL_Color) { 255, 255, 255, 255 });
 
+    printf("Font created\n");
+
+    // Not the SDL_Renderer, its just from my renderer.h for drawing the "3D"
     Renderer* renderer = renderer_init(&player, &ray_caster, window);
 
+    // Creating a map texture as drawing the map in a primitive manner everyframe is expensive
     SDL_Texture* map_texture = map_build_texture(window, map);
-
-    char fps_buffer[64];
     
     float rotation_velocity = 0.0f;
     float rotation_smoothing = 32.0f;
 
+
+    // Sound section
+
+    printf("\n\t\tLOADING SOUNDS\n");
     footstep_init();
 
     Sound sfx_background_music = sound_load("assets/sfx/background_music.wav");
@@ -397,12 +613,9 @@ int main()
     Sound sfx_step = sound_load("assets/sfx/step.wav");
     Sound sfx_player_die = sound_load("assets/sfx/die.wav");
     Sound sfx_unlock = sound_load("assets/sfx/unlock.wav");
+    Sound sfx_scare = sound_load("assets/sfx/scare.wav");
 
-    window_set_fps(window, 160);
-
-    Sprite gun_model = sprite_load(window->renderer, "assets/sprites/gun_model.him", window->width / 2, window->height / 2);
-    Sprite gun_shoot = sprite_load(window->renderer, "assets/sprites/gun_explode.him", window->width / 2 - 128, window->height / 2 + 200);
-    Sprite gun_smoke = sprite_load(window->renderer, "assets/sprites/gun_smoke.him", 0, 0);
+    printf("\n");
 
     float gun_timer = 2;
     bool shoot = false;
@@ -417,11 +630,14 @@ int main()
 
     float background_music_timer = 0;
     float display_message_timer = 0;
-    
-    char message_buffer[64] = "Find all the keys in order to escape.";
+
+    char buffer[BUFFER_LEN];
+    char buffer_message[BUFFER_LEN] = "Find all the keys in order to escape.";
 
     while (window->running)
     {
+
+        // Havent implemented a good sound loop system so this will do
         background_music_timer += window->delta_time;
 
         if (background_music_timer >= 37)
@@ -431,6 +647,8 @@ int main()
             sound_play_modify(&sfx_background_music, 1.0f);
 
         }
+
+        // Self explainatory, right?
 
         if (state == ID_STATE_INGAME)
         {
@@ -448,16 +666,19 @@ int main()
      
         while (window_poll_event(window))
         {
+            // This will almost never happen, good to have if game is not in focus
             if (window->event.type == WINDOW_QUIT)
             {
                 window_quit(window);
             }
 
-            if (window_get_key(window) == SDLK_ESCAPE)
+
+            else if (window_get_key(window) == SDLK_ESCAPE)
             {
                 state = ID_STATE_MAINMENU;
-
             }
+
+            // Shooting mecanics
             else if (state == ID_STATE_INGAME && window->event.type == SDL_MOUSEBUTTONDOWN)
             {
                 if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > 1.5f && player.ammo > 0) // 1.5 sec delay? hmmm
@@ -466,131 +687,64 @@ int main()
                     shoot = true;
                     gun_timer = 0.0f;
 
-                    sound_play_modify(&sfx_gun_explode, .7f);
+                    sound_play_modify(&sfx_gun_explode, .4f);
                     //shoot_and_spawn_smoke(map, &ray_caster, smoke_puffs);
                 }
             }
 
         }
 
+
+        // Here starts the good part ig
+        // Wow this looks better
         if (state == ID_STATE_INGAME)
         {
             enemy_move_timer += window->delta_time;
-
-            if (enemy_ghost.active && enemy_move_timer >= .4f)
-            {
-                float dx = player.x - enemy_ghost.map_x;
-                float dy = player.y - enemy_ghost.map_y;
-
-                float dist = dist_sq(player.x, player.y, enemy_ghost.map_x, enemy_ghost.map_y);
-
-                float rolloff = 0.02f;
-                float volume_target = 1.0f / (1.0f + rolloff * dist);
-
-                float min_audible = 0.001f;
-                if (volume_target < min_audible) volume_target = 0.0f;
-                if (volume_target > 1.0f) volume_target = 1.0f;
-
-                volume_target *= 2;
-
-                footstep_play_volume(volume_target);
-                enemy_update(&enemy_ghost, window->delta_time, map, MAP_HEIGHT, MAP_WIDTH, player.x, player.y);
-                enemy_move_timer = 0;
-            }
-
             gun_timer += window->delta_time;
+
+            update_enemy(window, &enemy_ghost, &player, &enemy_move_timer, map);
 
             handle_keys(map, &player, &ray_caster, window->delta_time);
             ray_caster_set_position(&ray_caster, player.x, player.y);
 
             // F this gotta use comments
-            // Here it checks if player got key this frame
+            // Here it checks if player got any keys this frame (For now only checks for the yellow key)
 
-            if (player_check_keys(&player, map) == 'Y' && !player.found_key_yellow)
+            check_for_keys(&player, map, &display_message_timer, buffer_message, &sfx_unlock, doors);
+
+            handle_renderer_rotation(window, renderer, &mouse, &ray_caster, &player, &rotation_velocity, rotation_smoothing);
+
+            // Checks whether the player has seen the enemy for the first time
+
+            if (!player.seen_enemy)
             {
-                sound_play_modify(&sfx_unlock, 0.7f);
-                player.found_key_yellow = true;
-                doors_unlock(ID_DOOR_YELLOW, map, doors);
-
-                display_message_timer = 0;
-                snprintf(message_buffer, 64, "You got the yellow key! (1/4)");
+                if (ray_caster_hit_enemy(&ray_caster))
+                {
+                    sound_play(&sfx_scare);
+                    player.seen_enemy = true;
+                }
             }
-
-            float target_rotation = mouse.dx * SENSITIVITY * window->delta_time;
-
-            rotation_velocity += (target_rotation - rotation_velocity) * rotation_smoothing * window->delta_time;
-
-            float rotation_step = rotation_velocity * window->delta_time;
-
-            player.direction += rotation_step;
-            ray_caster_rotate(&ray_caster, rotation_step);
-
-            renderer_update(renderer);
-            //smoke_update(smoke_puffs, window->delta_time);
-
-            //for (int i = 0; i < NUMBER_RAYS; i++) {
-            //    renderer->ray_caster->rays[i].len = ray_hits_wall(map, &renderer->ray_caster->rays[i]);
-            //}
         }
 
+        // Starting rendering stuff
         window_set_draw_color(window, color_to_hex(&COLOR_BACKGROUND));
         window_clear(window);
 
         if (state == ID_STATE_INGAME)
         {
-            renderer_draw(renderer, window, &enemy_ghost);
+            renderer_draw(renderer, window, &enemy_ghost, keys);
 
-            if (enemy_ghost.active)
-            {
-                if (dist_sq(enemy_ghost.map_x, enemy_ghost.map_y, player.x, player.y) < 1.41f)
-                {
-                    state = ID_STATE_MAINMENU;
-                    player.died = true;
-                    sound_play_modify(&sfx_player_die, 0.8f);
-                }
-
-                if (ray_caster.rays[middle_ray].hit_enemy == 'E' && gun_timer < 0.3f)
-                {
-                    enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost_hit);
-
-                    if (shoot)
-                        enemy_ghost.hits++;
-                }
-                else
-                {
-                    enemy_set_sprite(&enemy_ghost, &sprite_enemy_ghost);
-                }
-            }
-            if (enemy_ghost.hits >= 3)
-            {
-
-                if (gun_timer > 0.3f && enemy_ghost.active)
-                {
-                    sound_play_modify(&sfx_die, 1.0f);
-                    enemy_ghost.active = false;
-                    enemy_set_sprite(&enemy_ghost, &sprite_empty);
-                }
-            }
+            handle_enemy(&enemy_ghost, &ray_caster, &player, &sfx_player_die, &state, middle_ray, &gun_timer, shoot, &sprite_enemy_ghost_hit, &sprite_enemy_ghost);
+            handle_enemy_die(&enemy_ghost, &sfx_die, &sprite_empty, map, &gun_timer);
 
             draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
             draw_rays(window, &ray_caster.rays, map, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
-            //smoke_draw_all(window, &ray_caster, smoke_puffs, &gun_smoke);
+            draw_hud_text(window, &font, player.ammo, &display_message_timer, buffer, buffer_message);
 
-            sprintf_s(fps_buffer, sizeof(fps_buffer), "FPS: %d", window->FPS);
-            text_draw(window->renderer, &font, 10, 10, fps_buffer, 2, (SDL_Color) { 255, 255, 255, 255 });
 
-            sprintf_s(fps_buffer, sizeof(fps_buffer), "AMMO: %d", player.ammo);
-            text_draw_shadow(window->renderer, &font, window->width / 2 - strlen(fps_buffer) * FONT_SIZE * 8 / 2, window->height - FONT_SIZE, fps_buffer, 1, (SDL_Color) { 255, 255, 255, 255 });
-
-            display_message_timer += window->delta_time;
-
-            if (display_message_timer < 2.0f)
-            {
-
-                text_draw_shadow(window->renderer, &font, 0, window->height - FONT_SIZE, message_buffer, 1, (SDL_Color) { 255, 255, 255, 255 });
-            }
+            // HUD, not gonna make a function for this
 
             if (gun_timer < 0.5f)
             {
@@ -601,11 +755,14 @@ int main()
         }
         else
         {
+            // Handling main menu
             int button = menu_draw(&main_menu);
 
             if (button == ID_BUTTON_QUIT) window->running = false;
+
             if (button == ID_BUTTON_START) 
             {
+                // In case the player died, restart the player, not resetting the enemy state
                 if (player.died == true)
                 {
                     player_init(&player, &ray_caster, map);
@@ -618,6 +775,8 @@ int main()
 
         window_delay_fps(window);
     }
+
+    // Destroying everything :)
 
     for (int y = 0; y < MAP_HEIGHT; y++)
     {

@@ -2,8 +2,12 @@
 
 const Color4 COLOR_BACKGROUND = { 10, 10, 20, 255 };
 const Color4 COLOR_WALL = { 101, 85, 115, 255 };
+const Color4 COLOR_FLOOR = { 5, 5, 5, 255 };
 const Color4 COLOR_SEPARATOR = { 100, 93, 120, 255 };
 const Color4 COLOR_DOOR_YELLOW = { 199, 191, 80, 255 };
+const Color4 COLOR_DOOR_RED = { 133, 9, 18, 255 };
+const Color4 COLOR_DOOR_GREEN = { 4, 130, 29, 255 };
+const Color4 COLOR_DOOR_BLUE = { 0, 26, 110, 255 };
 
 void smoke_spawn(Smoke_puff* puffs, float x, float y)
 {
@@ -149,8 +153,14 @@ Column compute_column(int max_height, Ray* ray)
     Color4 color;
     if (ray->hit_id == '#')
         color = COLOR_WALL;
-    else if (ray->hit_id == '1' || ray->hit_key == 'Y')
+    else if (ray->hit_id == '1')
         color = COLOR_DOOR_YELLOW;
+    else if (ray->hit_id == '2')
+        color = COLOR_DOOR_RED;
+    else if (ray->hit_id == '3')
+        color = COLOR_DOOR_GREEN;
+    else if (ray->hit_id == '4')
+        color = COLOR_DOOR_BLUE;
     else
         color = COLOR_SEPARATOR;
 
@@ -158,9 +168,9 @@ Column compute_column(int max_height, Ray* ray)
 
     height = (int)((float)max_height / ray->len * HEIGHT_MULT);
 
-    if (height > max_height)
+    if (height > max_height - 100)
     {
-        height = max_height;
+        height = max_height - 100;
     }
 
     if (height < 2)
@@ -200,8 +210,68 @@ void renderer_update(Renderer* renderer)
     }
 }
 
-void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy)
+void renderer_draw_texture(Renderer* renderer, Window* window, Ray* ray, SDL_Rect* rect, float nx, float ny, float cx, float cy, float px, float py, float rx, float ry, float half_w, int sprite_width, SDL_Texture** tex_columns)
 {
+    float dx = cosf(ray->angle);
+    float dy = sinf(ray->angle);
+
+    float denom = dx * nx + dy * ny;
+    if (fabsf(denom) < 0.000001f) return;
+
+    float t = ((cx - px) * nx + (cy - py) * ny) / denom;
+    if (t <= 0) return;
+    if (t >= ray->len) return;
+
+    float hx = px + dx * t;
+    float hy = py + dy * t;
+
+    float off = (hx - cx) * rx + (hy - cy) * ry;
+
+    if (off < -half_w || off > half_w) return;
+
+    float u = (off + half_w) / (2.0f * half_w);
+    int tex_x = (int)(u * sprite_width);
+    if (tex_x < 0) tex_x = 0;
+    if (tex_x >= sprite_width) tex_x = sprite_width - 1;
+
+    float proj_height = (window->height / t) * HEIGHT_MULT / 2;
+    if (proj_height < 2) proj_height = 2;
+    if (proj_height > window->height) proj_height = (float)window->height;
+
+    SDL_Texture* tex = tex_columns[tex_x];
+    if (!tex) return;
+
+    float mult = (float)COLOR_MULT / (float)t;
+
+    //if (mult > 1f)
+    //{
+    //    mult = 0.8f;
+    //}
+
+    if (mult < MIN_DIST_MULT)
+    {
+        return;
+    }
+
+    Uint8 mod = (Uint8)(255.0f * mult);
+
+    SDL_SetTextureColorMod(tex, mod, mod, mod);
+
+    SDL_Rect dst;
+    dst.x = rect->x;
+    dst.w = rect->w;
+    dst.h = (int)proj_height;
+    dst.y = window->height / 2 - dst.h / 2;
+
+    SDL_RenderCopy(window->renderer, tex, NULL, &dst);
+}
+
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys)
+{
+    SDL_Rect floor = { 0, window->height / 2, window->width, window->height };
+    SDL_SetRenderDrawColor(window->renderer, COLOR_FLOOR.r, COLOR_FLOOR.g, COLOR_FLOOR.b, 255);
+    SDL_RenderFillRect(window->renderer, &floor);
+
     float column_width = (float)window->width / (float)NUMBER_RAYS;
     SDL_Rect rect = { 0,0,0,0 };
 
@@ -214,7 +284,7 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy)
     float nx = px - cx;
     float ny = py - cy;
     float nlen = sqrtf(nx * nx + ny * ny);
-    if (nlen < 1e-6f) nlen = 1e-6f;
+    if (nlen < 0.000001f) nlen = 0.000001f;
     nx /= nlen; ny /= nlen;
 
     float rx = -ny;
@@ -238,65 +308,52 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy)
         if (ray.hit_key != ' ')
         {
             rect.y += col.height / 2;
-            rect.h = col.height / 20;
+            rect.h = col.height / 50;
 
-            col.color = COLOR_DOOR_YELLOW;
+            int index = 0;
 
-            SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
-            SDL_RenderFillRect(window->renderer, &rect);
+            if (ray.hit_key == 'Y')
+            {
+                index = 0;
+            }
+            else if (ray.hit_key == 'R')
+            {
+                index = 1;
+            }
+            else if (ray.hit_key == 'G')
+            {
+                index = 2;
+            }
+            else if (ray.hit_key == 'B')
+            {
+                index = 3;
+            }
+
+
+
+            float kcx = ray.hit_key_x;
+            float kcy = ray.hit_key_y;
+
+            float knx = px - kcx;
+            float kny = py - kcy;
+            float knlen = sqrtf(knx * knx + kny * kny);
+            if (knlen < 0.000001f) knlen = 0.000001f;
+            knx /= knlen;
+            kny /= knlen;
+
+            float krx = -kny;
+            float kry = knx;
+
+            float key_half_w = 0.25f;
+
+            renderer_draw_texture(renderer, window, &ray, &rect, knx, kny, kcx, kcy, px, py, krx, kry, key_half_w, keys[index].width, keys[index].tex_columns);
+
+            //col.color = COLOR_DOOR_YELLOW;
+
+            //SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
+            //SDL_RenderFillRect(window->renderer, &rect);
         }
 
-        float dx = cosf(ray.angle);
-        float dy = sinf(ray.angle);
-
-        float denom = dx * nx + dy * ny;
-        if (fabsf(denom) < 1e-6f) continue;
-
-        float t = ((cx - px) * nx + (cy - py) * ny) / denom;
-        if (t <= 0) continue;
-        if (t >= ray.len) continue;
-
-        float hx = px + dx * t;
-        float hy = py + dy * t;
-
-        float off = (hx - cx) * rx + (hy - cy) * ry;
-
-        if (off < -half_w || off > half_w) continue;
-
-        float u = (off + half_w) / (2.0f * half_w);
-        int tex_x = (int)(u * enemy->sprite.width);
-        if (tex_x < 0) tex_x = 0;
-        if (tex_x >= enemy->sprite.width) tex_x = enemy->sprite.width - 1;
-
-        float proj_height = (window->height / t) * HEIGHT_MULT / 2;
-        if (proj_height < 2) proj_height = 2;
-        if (proj_height > window->height) proj_height = (float)window->height;
-
-        SDL_Texture* tex = enemy->sprite.tex_columns[tex_x];
-        if (!tex) continue;
-
-        float mult = (float)COLOR_MULT / (float)t;
-
-        if (mult > 0.8f)
-        {
-            mult = 0.8f;
-        }
-
-        if (mult < MIN_DIST_MULT)
-        {
-            continue;
-        }
-
-        Uint8 mod = (Uint8)(255.0f * mult);
-
-        SDL_SetTextureColorMod(tex, mod, mod, mod);
-
-        SDL_Rect dst;
-        dst.x = rect.x;
-        dst.w = rect.w;
-        dst.h = (int)proj_height;
-        dst.y = window->height / 2 - dst.h / 2;
-
-        SDL_RenderCopy(window->renderer, tex, NULL, &dst);
+        renderer_draw_texture(renderer, window, &ray, &rect, nx, ny, cx, cy, px, py, rx, ry, half_w, enemy->sprite.width, enemy->sprite.tex_columns);
     }
 }

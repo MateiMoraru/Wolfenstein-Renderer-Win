@@ -72,7 +72,7 @@ char player_check_keys(Player* player, char** map)
             continue;
 
         char cell = map[dy][dx];
-        if (cell == 'Y')
+        if (cell == 'Y' || cell == 'R' || cell == 'G' || cell == 'B')
         {
             map[dy][dx] = ' ';
             return cell;

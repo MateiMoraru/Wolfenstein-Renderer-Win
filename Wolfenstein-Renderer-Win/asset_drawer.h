@@ -1,3 +1,14 @@
+/*
+            HIM ASSET DRAWER
+
+            https://github.com/Matei/Moraru/Him-Asset-Drawer
+
+            Used for loading files as i dont want to use stb_image.h :)
+
+            Its not the whole files as it wasnt needed
+*/
+
+
 #ifndef ASSET_DRAWER_H
 #define ASSET_DRAWER_H
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -15,17 +26,6 @@
 #include "compressor.h"
 
 #include "Text.h"
-
-#define PALETTE_WIDTH 120
-#define PALETTE_SIZE 32
-
-#define MAX_WINDOW_WIDTH 1600
-#define MAX_WINDOW_HEIGHT 900
-
-#define TEXT_SIZE 16
-
-#define GRID_SIZE 16
-
 #define clamp(v, lo, hi) ((v) < (lo) ? (lo) : ((v) > (hi) ? (hi) : (v)))
 
 typedef struct
@@ -94,5 +94,7 @@ void init_pixels(Color4** pixels, int width, int height);
 
 void save_pixels(Color4** pixels, int width, int height, const char* filename);
 void load_pixels(Color4** pixels, int width, int height, const char* filename);
+
+SDL_Color to_sdl_color(Color4* color);
 
 #endif
