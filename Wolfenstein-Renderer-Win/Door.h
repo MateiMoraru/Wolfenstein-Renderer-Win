@@ -9,9 +9,12 @@
 #ifndef DOOR_H
 #define DOOR_H
 
-#define MAX_DOORS 64
+#define MAX_DOORS 128
+#define MIN_UNLOCK_DISTANCE 30
 
 #include <stdint.h>
+#include "Player.h"
+#include "Utils.h"
 
 typedef struct Door
 {
@@ -23,6 +26,6 @@ typedef struct Door
 Door door_init(uint8_t id, int x, int y);
 
 // This function checks for all the doors registered and unlocks them if id matches
-void doors_unlock(uint8_t id, char** map, Door* doors);
+bool doors_unlock(uint8_t id, char** map, Door* doors, Player* player);
 
 #endif

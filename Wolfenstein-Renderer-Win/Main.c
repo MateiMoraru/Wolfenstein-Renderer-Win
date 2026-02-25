@@ -31,6 +31,7 @@
 #include "Menu.h"
 #include "Door.h"
 
+#define TARGET_FPS 0
 
 #define WIDTH -1
 #define HEIGHT -1
@@ -51,30 +52,46 @@
 #define ID_STATE_MAINMENU 3
 #define ID_STATE_INGAME 4
 
-#define ID_DOOR_YELLOW 5
+#define ID_DOOR_YELLOW 1
+#define ID_DOOR_RED 2
+#define ID_DOOR_GREEN 3
+#define ID_DOOR_BLUE 4
 
 #define BUFFER_LEN 128
 
 #define MIN_DISTANCE_DEATH 3.0f
 #define MIN_DISTANCE_ENEMY_FOLLOW 3700
 
+#define DOOR_OPEN_SFX_COOLDOWN 3.0f
 
+// Display message buffers
 char* buffer_found_key_yellow = "Yellow key found! 3 More to go.";
 char* buffer_found_key_red = "Red key found! 2 More to go.";
 char* buffer_found_key_green = "Green key found! 1 More to go.";
 char* buffer_found_key_blue = "Blue key found! You can now escape!";
 
+// Enemy spawn position
+int enemy_spawn_pos[4][2] = {
+    {1, 12},                   // Second spawn
+    {81, 36},
+    {69, 12}
+};
+
+// Self explainatory
 float footstep_timer = 0.0f;
 float footstep_interval = 0.8f;
 
 static Sound footstep_sounds[NUMBER_FOOTSTEPS];
 static Sound all_sounds[NUMBER_SOUNDS];
 
+
+// Simplest random float function
 float random_float(float min, float max)
 {
     return min + (max - min) * (rand() / (float)RAND_MAX);
 }
 
+// Init for the footsteps sounds
 void footstep_init()
 {
     footstep_sounds[0] = sound_load("assets/sfx/footstep.wav");
@@ -83,19 +100,21 @@ void footstep_init()
     footstep_sounds[3] = sound_load("assets/sfx/footstep4.wav");
 }
 
-void footstep_play()
-{
-    int idx = rand() % NUMBER_FOOTSTEPS;
-    float vol = random_float(0.7f, 0.9f);
-    sound_play_modify(&footstep_sounds[idx], vol);
-}
-
+// Play a random footstep at a set volume
 void footstep_play_volume(float volume)
 {
     int idx = rand() % NUMBER_FOOTSTEPS;
     sound_play_modify(&footstep_sounds[idx], volume);
 }
 
+// Play a random footstep at a random volume
+void footstep_play()
+{
+    float vol = random_float(0.7f, 0.9f);
+    footstep_play_volume(vol);
+}
+
+// Destroy func
 void footstep_free()
 {
     for (int i = 0; i < NUMBER_FOOTSTEPS; i++)
@@ -113,6 +132,7 @@ void sounds_free()
     }
 }
 
+// Initialize map
 char** map_init()
 {
     char** map = malloc(MAP_HEIGHT * sizeof(char*));
@@ -142,6 +162,8 @@ char** map_init()
     return map;
 }
 
+// ***** Never used
+// Put a pixel in the map
 void map_put(char** map, int x, int y, char c)
 {
     if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT)
@@ -149,7 +171,7 @@ void map_put(char** map, int x, int y, char c)
     map[y][x] = c;
 }
 
-
+// Put a rectangle in the map
 void map_put_rect(char** map, int x, int y, int w, int h, char c)
 {
     for (int dy = y; dy < y + h; dy++)
@@ -160,13 +182,17 @@ void map_put_rect(char** map, int x, int y, int w, int h, char c)
         }
     }
 }
+// *****
 
+// Draw the map texture
 void draw_map(SDL_Texture* map_tex, Window* window, int sx, int sy)
 {
     SDL_Rect dst = { sx, sy, MAP_WIDTH * SCALE, MAP_HEIGHT * SCALE };
     SDL_RenderCopy(window->renderer, map_tex, NULL, &dst);
 }
 
+
+// For calculating delta X basically
 void handle_mouse(Mouse* mouse)
 {
     int xrel, yrel;
@@ -175,6 +201,7 @@ void handle_mouse(Mouse* mouse)
     mouse->dy = yrel;
 }
 
+// Handle the keys related to the player movement
 void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
 {
     const Uint8* keys = SDL_GetKeyboardState(NULL);
@@ -186,12 +213,13 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
     if (keys[SDL_SCANCODE_LSHIFT])
     {
         mult = 5.0f;
-        footstep_interval = 0.3f;
+        footstep_interval = 0.4f;
     }
     else
     {
-        footstep_interval = 0.5f;
+        footstep_interval = 0.8f;
     }
+
     if (keys[SDL_SCANCODE_W]) forward += mult;
     if (keys[SDL_SCANCODE_S]) forward -= mult;
     if (keys[SDL_SCANCODE_A]) strafe -= mult;
@@ -209,7 +237,7 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
     player_move(map, player, ray_caster, forward, strafe, dt); 
 }
 
-
+// Load the map from a file
 void map_load(char** map, const char* map_load_file, Enemy* enemy, Door* doors)
 {
     FILE* fin = fopen(map_load_file, "r");
@@ -235,9 +263,21 @@ void map_load(char** map, const char* map_load_file, Enemy* enemy, Door* doors)
                 enemy->map_x = x;
                 enemy->map_y = y;
             }
-            if (map[y][x] == '1')
+            else if (map[y][x] == '1')
             {
                 doors[door_index++] = door_init(ID_DOOR_YELLOW, x, y);
+            }
+            else if (map[y][x] == '2')
+            {
+                doors[door_index++] = door_init(ID_DOOR_RED, x, y);
+            }
+            else if (map[y][x] == '3')
+            {
+                doors[door_index++] = door_init(ID_DOOR_GREEN, x, y);
+            }
+            else if (map[y][x] == '4')
+            {
+                doors[door_index++] = door_init(ID_DOOR_BLUE, x, y);
             }
             x++;
         }
@@ -255,6 +295,8 @@ void map_load(char** map, const char* map_load_file, Enemy* enemy, Door* doors)
 
 }
 
+// ***** Never used
+// Save the map to a file
 void map_save(char** map, const char* filename)
 {
     FILE* fout = fopen(filename, "w");
@@ -277,6 +319,7 @@ void map_save(char** map, const char* filename)
     fclose(fout);
 }
 
+// For drawing to the map by mouse
 void map_draw_mouse(char** map, Mouse* mouse)
 {
     if (mouse->button & SDL_BUTTON(SDL_BUTTON_LEFT))
@@ -287,13 +330,16 @@ void map_draw_mouse(char** map, Mouse* mouse)
         map[y][x] = '#';
     }
 }
+// *****
 
+// Creates the map texture :)
 SDL_Texture* map_build_texture(Window* window, char** map)
 {
     int tex_w = MAP_WIDTH * SCALE;
     int tex_h = MAP_HEIGHT * SCALE;
 
     SDL_Texture* tex = SDL_CreateTexture(window->renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, tex_w, tex_h);
+    if (!tex) return NULL;
 
     SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
 
@@ -302,22 +348,57 @@ SDL_Texture* map_build_texture(Window* window, char** map)
     SDL_SetRenderDrawColor(window->renderer, 0, 0, 0, 0);
     SDL_RenderClear(window->renderer);
 
-    SDL_Rect r = { 0, 0, SCALE, SCALE };
+    SDL_Rect rect = { 0, 0, SCALE, SCALE };
 
     for (int y = 0; y < MAP_HEIGHT; y++)
     {
         for (int x = 0; x < MAP_WIDTH; x++)
         {
+            int r, g, b;
+            char c = map[y][x];
 
-            if (map[y][x] == ' ')
-                SDL_SetRenderDrawColor(window->renderer, 18, 0, 61, 255);
+            if (c == ' ')
+            {
+                r = 18; 
+                g = 0; 
+                b = 61;
+            }
+            else if (c == '1')
+            {
+                r = COLOR_DOOR_YELLOW.r; 
+                g = COLOR_DOOR_YELLOW.g; 
+                b = COLOR_DOOR_YELLOW.b;
+            }
+            else if (c == '2')
+            {
+                r = COLOR_DOOR_RED.r;
+                g = COLOR_DOOR_RED.g; 
+                b = COLOR_DOOR_RED.b;
+            }
+            else if (c == '3')
+            {
+                r = COLOR_DOOR_GREEN.r; 
+                g = COLOR_DOOR_GREEN.g; 
+                b = COLOR_DOOR_GREEN.b;
+            }
+            else if (c == '4')
+            {
+                r = COLOR_DOOR_BLUE.r; 
+                g = COLOR_DOOR_BLUE.g; 
+                b = COLOR_DOOR_BLUE.b;
+            }
             else
-                SDL_SetRenderDrawColor(window->renderer, 86, 112, 156, 255);
+            {
+                r = 81;
+                g = 112; 
+                b = 156;
+            }
 
+            SDL_SetRenderDrawColor(window->renderer, r, g, b, 255);
 
-            r.x = x * SCALE;
-            r.y = y * SCALE;
-            SDL_RenderFillRect(window->renderer, &r);
+            rect.x = x * SCALE;
+            rect.y = y * SCALE;
+            SDL_RenderFillRect(window->renderer, &rect);
         }
     }
 
@@ -345,7 +426,9 @@ void sprite_draw_hud(Window* window, Sprite* sprite, float scale)
     SDL_RenderCopy(window->renderer, sprite->texture, NULL, &dst);
 }
 
-void player_init(Player* player, RayCaster* ray_caster, char** map)
+// Player init, also used for restart
+//      Resets the raycaster as well :)
+void player_init(Player* player, RayCaster* ray_caster, char** map, int keys)
 {
     *player = (Player){
         .x = 1,
@@ -362,8 +445,18 @@ void player_init(Player* player, RayCaster* ray_caster, char** map)
         .found_key_red = false,
         .found_key_green = false,
         .found_key_blue = false,
+        .found_keys = keys,
         .seen_enemy = false
     };
+
+    if (keys >= 1)
+        player->found_key_yellow = true;
+    if (keys >= 2)
+        player->found_key_red = true;
+    if (keys >= 3)
+        player->found_key_green = true;
+    if (keys >= 4)
+        player->found_key_blue = true;
 
     ray_caster_init(player->x, player->y, player->direction, player->fov, ray_caster);
 
@@ -372,6 +465,10 @@ void player_init(Player* player, RayCaster* ray_caster, char** map)
     ray_caster_set_position(ray_caster, player->x, player->y);
 }
 
+
+// ***** Enemy handling
+
+// Update the enemy, doesnt check for death
 void update_enemy(Window* window, Enemy* enemy_ghost, Player* player, float* enemy_move_timer, char** map)
 {
     if (enemy_ghost->active && *enemy_move_timer >= .4f)
@@ -399,54 +496,8 @@ void update_enemy(Window* window, Enemy* enemy_ghost, Player* player, float* ene
     }
 }
 
-void check_for_keys(Player* player, char**map, int* display_message_timer, char* buffer_message, Sound* sfx_unlock, Door* doors)
-{
-    char check = player_check_keys(player, map);
-    if ((check == 'Y' || check == 'R' || check == 'G' || check == 'B') && !player->found_key_yellow)
-    {
-        sound_play_modify(sfx_unlock, 0.7f);
-        doors_unlock(ID_DOOR_YELLOW, map, doors);
-
-        *display_message_timer = 0;
-
-        if (check == 'Y')
-        {
-            snprintf(buffer_message, 64, buffer_found_key_yellow);
-            player->found_key_yellow = true;
-        }
-        else if (check == 'R')
-        {
-            snprintf(buffer_message, 64, buffer_found_key_red);
-            player->found_key_red = true;
-        }
-        else if (check == 'G')
-        {
-            snprintf(buffer_message, 64, buffer_found_key_green);
-            player->found_key_green = true;
-        }
-        else if (check == 'B')
-        {
-            snprintf(buffer_message, 64, buffer_found_key_blue);
-
-            player->found_key_blue = true;
-        }
-    }
-}
-
-void handle_renderer_rotation(Window* window, Renderer* renderer, Mouse* mouse, RayCaster* ray_caster, Player* player, float* rotation_velocity, float rotation_smoothing)
-{
-    float target_rotation = mouse->dx * SENSITIVITY * window->delta_time;
-
-    *rotation_velocity += (target_rotation - *rotation_velocity) * rotation_smoothing * window->delta_time;
-
-    float rotation_step = *rotation_velocity * window->delta_time;
-
-    player->direction += rotation_step;
-    ray_caster_rotate(ray_caster, rotation_step);
-
-    renderer_update(renderer);
-}
-
+// Checks for player player death
+// Also, changes the sprite of the enemy
 void handle_enemy(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sound* sfx_player_die, int* state, int middle_ray, float* gun_timer, bool shoot, Sprite* sprite_enemy_ghost_hit, Sprite* sprite_enemy_ghost)
 {
     if (enemy_ghost->active)
@@ -470,22 +521,158 @@ void handle_enemy(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sou
             enemy_set_sprite(enemy_ghost, sprite_enemy_ghost);
         }
     }
-    
+
 }
 
-void handle_enemy_die(Enemy* enemy_ghost, Sound* sfx_die, Sprite* sprite_empty, char** map, float* gun_timer)
+// Checks wether the enemy got killed
+//      Empties its map location
+//      Resets its path
+//      Basically resets everything :)
+//      Dk why i dont create anew one
+void handle_enemy_die(Enemy* enemy_ghost, Sound* sfx_die, char** map, float* gun_timer)
 {
-    if (enemy_ghost->hits >= 3)
-    {
+    if (!enemy_ghost->active) return;
+    if (enemy_ghost->hits < 3) return;
+    if (*gun_timer <= 0.3f) return;
 
-        if (*gun_timer > 0.3f && enemy_ghost->active)
+    sound_play_modify(sfx_die, 1.0f);
+
+    map[enemy_ghost->map_y][enemy_ghost->map_x] = ' ';
+
+    enemy_ghost->deaths++;
+    enemy_ghost->hits = 0;
+
+    enemy_ghost->path_len = 0;
+    enemy_ghost->path_pos = 0;
+    enemy_ghost->repath_accum = 0.0f;
+    enemy_ghost->last_goal_cell = -1;
+    enemy_ghost->drawn = false;
+
+    for (int i = 0; i < ENEMY_MAX_PATH; i++) enemy_ghost->path[i] = -1;
+
+    int spawn_idx = enemy_ghost->deaths - 1;
+    if (spawn_idx < 0) spawn_idx = 0;
+    if (spawn_idx > 2) spawn_idx = 2;
+
+    enemy_ghost->map_x = enemy_spawn_pos[spawn_idx][0];
+    enemy_ghost->map_y = enemy_spawn_pos[spawn_idx][1];
+
+    map[enemy_ghost->map_y][enemy_ghost->map_x] = 'E';
+
+    enemy_ghost->x = (float)enemy_ghost->map_x;
+    enemy_ghost->y = (float)enemy_ghost->map_y;
+
+    enemy_ghost->sprite.x = enemy_ghost->x;
+    enemy_ghost->sprite.y = enemy_ghost->y;
+
+    enemy_ghost->active = true;
+}
+
+// *****
+
+// Checks whether the player reached a key
+// Opens doors
+void check_for_keys(Player* player, char**map, int* display_message_timer, char* buffer_message, Sound* sfx_unlock, Sound* sfx_door_open, Door* doors, float* door_open_sfx_timer)
+{
+    if (player->found_key_yellow || player->found_key_red || player->found_key_green || player->found_key_blue)
+    {
+        bool opened = false;
+
+        if (player->found_key_yellow || player->found_key_red || player->found_key_green || player->found_key_blue)
         {
-            sound_play_modify(sfx_die, 1.0f);
-            enemy_ghost->active = false;
-            enemy_set_sprite(enemy_ghost, sprite_empty);
-            map[enemy_ghost->map_y][enemy_ghost->map_x] = ' ';
+
+            if (player->found_key_yellow)
+            {
+                if (doors_unlock(ID_DOOR_YELLOW, map, doors, player))
+                {
+                    opened = opened || true;
+                }
+            }
+
+            if (player->found_key_red)
+            {
+                if (doors_unlock(ID_DOOR_RED, map, doors, player))
+                {
+                    opened = true;
+                }
+            }
+
+            if (player->found_key_green)
+            {
+                if (doors_unlock(ID_DOOR_GREEN, map, doors, player))
+                {
+                    opened = true;
+                }
+            }
+
+            if (player->found_key_blue)
+            {
+                if (doors_unlock(ID_DOOR_BLUE, map, doors, player))
+                {
+                    opened = true;
+                }
+            }
+
+            if (opened)
+            {
+                if (*door_open_sfx_timer > DOOR_OPEN_SFX_COOLDOWN)
+                {
+                    *door_open_sfx_timer = 0.0f;
+                    sound_play_modify(sfx_door_open, 0.8f);
+                }
+            }
         }
     }
+    
+    char check = player_check_keys(player, map);
+
+    if (check == 'Y' && !player->found_key_yellow)
+    {
+        player->found_keys++;
+        sound_play_modify(sfx_unlock, 0.7f);
+        *display_message_timer = 0;
+        snprintf(buffer_message, 64, buffer_found_key_yellow);
+        player->found_key_yellow = true;
+    }
+    else if (check == 'R' && !player->found_key_red)
+    {
+        player->found_keys++;
+        sound_play_modify(sfx_unlock, 0.7f);
+        *display_message_timer = 0;
+        snprintf(buffer_message, 64, buffer_found_key_red);
+        player->found_key_red = true;
+    }
+    else if (check == 'G' && !player->found_key_green)
+    {
+        player->found_keys++;
+        sound_play_modify(sfx_unlock, 0.7f);
+        *display_message_timer = 0;
+        snprintf(buffer_message, 64, buffer_found_key_green);
+        player->found_key_green = true;
+    }
+    else if (check == 'B' && !player->found_key_blue)
+    {
+        player->found_keys++;
+        sound_play_modify(sfx_unlock, 0.7f);
+        *display_message_timer = 0;
+        snprintf(buffer_message, 64, buffer_found_key_blue);
+        player->found_key_blue = true;
+    }
+}
+
+
+void handle_renderer_rotation(Window* window, Renderer* renderer, Mouse* mouse, RayCaster* ray_caster, Player* player, float* rotation_velocity, float rotation_smoothing)
+{
+    float target_rotation = mouse->dx * SENSITIVITY;
+
+    *rotation_velocity += (target_rotation - *rotation_velocity) * rotation_smoothing * window->delta_time;
+
+    float rotation_step = *rotation_velocity;
+
+    player->direction += rotation_step;
+    ray_caster_rotate(ray_caster, rotation_step);
+
+    renderer_update(renderer);
 }
 
 void draw_hud_text(Window* window, Font* font, int ammo, float* display_message_timer, char* buffer, char* buffer_message)
@@ -500,9 +687,38 @@ void draw_hud_text(Window* window, Font* font, int ammo, float* display_message_
 
     if (*display_message_timer < 5.0f)
     {
-
         text_draw_shadow(window->renderer, font, 0, window->height - FONT_SIZE, buffer_message, 1, (SDL_Color) { 255, 255, 255, 255 });
     }
+}
+
+void draw_hud(Window* window, Player* player, Sprite* keys, Sprite* gun_shoot, Sprite* gun_model, Sprite* sprite_crosshair, Sprite* sprite_crosshair_shoot, float gun_timer)
+{
+    if (gun_timer < 0.5f)
+    {
+        sprite_draw(window, gun_shoot, 15);
+    }
+
+    sprite_draw_hud(window, gun_model, 15);
+
+    if (player->found_keys > 0)
+    {
+        int width = 64;
+        int start_x = window->width / 2 + window->width / 10;
+        int start_y = window->height - width;
+
+        for (int i = 0; i < player->found_keys; i++)
+        {
+            keys[i].x = start_x + width * i;
+            keys[i].y = start_y;
+
+            sprite_draw(window, &keys[i], width / keys[i].width);
+        }
+    }
+
+    if (gun_timer > 0.4f)
+        sprite_draw(window, sprite_crosshair, 2);
+    else
+        sprite_draw(window, sprite_crosshair_shoot, 2);  
 }
 
 int main()
@@ -519,14 +735,14 @@ int main()
 
     sound_init();
 
-    Window* window = window_create(-1, -1, "Domm");
+    Window* window = window_create(-1, -1, "Doom");
 
     if (!window)
     {
         printf("Failed to create Window object :(\n");
         return 1;
     }
-    window_set_fps(window, 144);
+    window_set_fps(window, TARGET_FPS);
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
     printf("Window created successfully (width, height: %d, %d)\n", window->width, window->height);
@@ -539,14 +755,21 @@ int main()
         return 1;
     }
 
-    Door doors[MAX_DOORS];
-
+    Door doors[MAX_DOORS] = { 0 };
 
     printf("\n\t\tLOADING TEXTURES\n");
 
     Sprite sprite_empty = sprite_load(window->renderer, "assets/sprites/empty.him", 11, 20);
     Sprite sprite_enemy_ghost_hit = sprite_load(window->renderer, "assets/sprites/enemy_hit.him", 11, 20);
     Sprite sprite_enemy_ghost = sprite_load(window->renderer, "assets/sprites/enemy.him", 11, 20);
+
+    Sprite sprite_crosshair = sprite_load(window->renderer, "assets/sprites/crosshair.him", 11, 20);
+    sprite_crosshair.x = window->width / 2;
+    sprite_crosshair.y = window->height / 2;
+
+    Sprite sprite_crosshair_shoot = sprite_load(window->renderer, "assets/sprites/crosshair_shoot.him", 11, 20);
+    sprite_crosshair_shoot.x = window->width / 2;
+    sprite_crosshair_shoot.y = window->height / 2;
 
     Sprite gun_model = sprite_load(window->renderer, "assets/sprites/gun_model.him", window->width / 2, window->height / 2);
     Sprite gun_shoot = sprite_load(window->renderer, "assets/sprites/gun_explode.him", window->width / 2 - 128, window->height / 2 + 200);
@@ -571,7 +794,7 @@ int main()
     Player player;
     RayCaster ray_caster;
 
-    player_init(&player, &ray_caster, map);
+    player_init(&player, &ray_caster, map, 4);
 
     printf("Player created\n");
 
@@ -598,7 +821,7 @@ int main()
     SDL_Texture* map_texture = map_build_texture(window, map);
     
     float rotation_velocity = 0.0f;
-    float rotation_smoothing = 32.0f;
+    float rotation_smoothing = 64;
 
 
     // Sound section
@@ -614,15 +837,14 @@ int main()
     Sound sfx_player_die = sound_load("assets/sfx/die.wav");
     Sound sfx_unlock = sound_load("assets/sfx/unlock.wav");
     Sound sfx_scare = sound_load("assets/sfx/scare.wav");
+    Sound sfx_door_open = sound_load("assets/sfx/door_open.wav");
 
     printf("\n");
 
-    float gun_timer = 2;
     bool shoot = false;
 
     int middle_ray = NUMBER_RAYS / 2;
 
-    float enemy_move_timer = 0;
 
     Menu main_menu = main_menu_init(window, &font, ID_BUTTON_QUIT, ID_BUTTON_START);
 
@@ -630,6 +852,9 @@ int main()
 
     float background_music_timer = 0;
     float display_message_timer = 0;
+    float enemy_move_timer = 0;
+    float gun_timer = 2;
+    float door_open_sfx_timer = 10;
 
     char buffer[BUFFER_LEN];
     char buffer_message[BUFFER_LEN] = "Find all the keys in order to escape.";
@@ -701,6 +926,7 @@ int main()
         {
             enemy_move_timer += window->delta_time;
             gun_timer += window->delta_time;
+            door_open_sfx_timer += window->delta_time;
 
             update_enemy(window, &enemy_ghost, &player, &enemy_move_timer, map);
 
@@ -710,7 +936,7 @@ int main()
             // F this gotta use comments
             // Here it checks if player got any keys this frame (For now only checks for the yellow key)
 
-            check_for_keys(&player, map, &display_message_timer, buffer_message, &sfx_unlock, doors);
+            check_for_keys(&player, map, &display_message_timer, buffer_message, &sfx_unlock, &sfx_door_open, doors, &door_open_sfx_timer);
 
             handle_renderer_rotation(window, renderer, &mouse, &ray_caster, &player, &rotation_velocity, rotation_smoothing);
 
@@ -735,7 +961,7 @@ int main()
             renderer_draw(renderer, window, &enemy_ghost, keys);
 
             handle_enemy(&enemy_ghost, &ray_caster, &player, &sfx_player_die, &state, middle_ray, &gun_timer, shoot, &sprite_enemy_ghost_hit, &sprite_enemy_ghost);
-            handle_enemy_die(&enemy_ghost, &sfx_die, &sprite_empty, map, &gun_timer);
+            handle_enemy_die(&enemy_ghost, &sfx_die, map, &gun_timer);
 
             draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
@@ -744,14 +970,7 @@ int main()
             draw_hud_text(window, &font, player.ammo, &display_message_timer, buffer, buffer_message);
 
 
-            // HUD, not gonna make a function for this
-
-            if (gun_timer < 0.5f)
-            {
-                sprite_draw(window, &gun_shoot, 15);
-            }
-
-            sprite_draw_hud(window, &gun_model, 15);
+            draw_hud(window, &player, keys, &gun_shoot, &gun_model, &sprite_crosshair, &sprite_crosshair_shoot, gun_timer);
         }
         else
         {
@@ -760,12 +979,12 @@ int main()
 
             if (button == ID_BUTTON_QUIT) window->running = false;
 
-            if (button == ID_BUTTON_START) 
+            if (button == ID_BUTTON_START)
             {
                 // In case the player died, restart the player, not resetting the enemy state
                 if (player.died == true)
                 {
-                    player_init(&player, &ray_caster, map);
+                    player_init(&player, &ray_caster, map, player.found_keys);
                 }
                 state = ID_STATE_INGAME;
             }

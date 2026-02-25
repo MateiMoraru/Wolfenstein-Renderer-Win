@@ -168,9 +168,9 @@ Column compute_column(int max_height, Ray* ray)
 
     height = (int)((float)max_height / ray->len * HEIGHT_MULT);
 
-    if (height > max_height - 100)
+    if (height > max_height - MAX_HEIGHT)
     {
-        height = max_height - 100;
+        height = max_height - MAX_HEIGHT;
     }
 
     if (height < 2)
@@ -185,6 +185,13 @@ Column compute_column(int max_height, Ray* ray)
     color.r *= mult;
     color.g *= mult;
     color.b *= mult;
+
+    if (ray->hit_side == 1)
+    {
+        color.r = (Uint8)(color.r * 0.70f);
+        color.g = (Uint8)(color.g * 0.70f);
+        color.b = (Uint8)(color.b * 0.70f);
+    }
 
     if (mult < MIN_DIST_MULT)
     {
@@ -261,7 +268,7 @@ void renderer_draw_texture(Renderer* renderer, Window* window, Ray* ray, SDL_Rec
     dst.x = rect->x;
     dst.w = rect->w;
     dst.h = (int)proj_height;
-    dst.y = window->height / 2 - dst.h / 2;
+    dst.y = window->height / 2 - dst.h / 2 / 1.5f;
 
     SDL_RenderCopy(window->renderer, tex, NULL, &dst);
 }
@@ -354,6 +361,10 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* key
             //SDL_RenderFillRect(window->renderer, &rect);
         }
 
-        renderer_draw_texture(renderer, window, &ray, &rect, nx, ny, cx, cy, px, py, rx, ry, half_w, enemy->sprite.width, enemy->sprite.tex_columns);
+        if (ray.hit_enemy_distance > MAX_SEE_DISTANCE) continue;
+        if (enemy->active && ray.hit_enemy == 'E')
+        {
+            renderer_draw_texture(renderer, window, &ray, &rect, nx, ny, cx, cy, px, py, rx, ry, half_w, enemy->sprite.width, enemy->sprite.tex_columns);
+        }
     }
 }

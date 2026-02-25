@@ -19,8 +19,9 @@
 #include "Enemy.h"
 
 #define HEIGHT_MULT 2.0f
-#define COLOR_MULT 2.0f
+#define COLOR_MULT 1.6f
 #define MAX_SEE_DISTANCE 200
+#define MAX_HEIGHT 250
 #define MIN_DIST_MULT 0.0000f
 
 #define MAX_SMOKE_PUFFS 64
@@ -30,6 +31,9 @@ extern const Color4 COLOR_FLOOR;
 extern const Color4 COLOR_WALL;
 extern const Color4 COLOR_SEPARATOR;
 extern const Color4 COLOR_DOOR_YELLOW;
+extern const Color4 COLOR_DOOR_RED;
+extern const Color4 COLOR_DOOR_GREEN;
+extern const Color4 COLOR_DOOR_BLUE;
 
 
 // Still developing this as i couldnt make it work

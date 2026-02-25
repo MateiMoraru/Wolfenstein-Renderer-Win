@@ -38,6 +38,16 @@ void enemy_set_sprite(Enemy* enemy, Sprite* sprite)
 	enemy->sprite = *sprite;
 }
 
+void enemy_set_position(Enemy* enemy, char** map, int x, int y)
+{
+	map[enemy->map_y][enemy->map_x] = ' ';
+	
+	enemy->map_x = x;
+	enemy->map_y = y;
+
+
+}
+
 void enemy_update(Enemy* enemy, float dt, char** map, int rows, int cols, float target_x, float target_y)
 {
 	if (!enemy || !enemy->active || !map || rows <= 0 || cols <= 0) return;

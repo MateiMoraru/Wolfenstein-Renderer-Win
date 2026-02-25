@@ -124,7 +124,12 @@ float ray_hits_wall(char** map, Ray* ray)
             ray->hit_side = side;
             ray->hit_x = x + dx * t;
             ray->hit_y = y + dy * t;
+
+            float view_angle = ray->angle;
+            ray->len = t;
+
             return t;
+
         }
     }
 }
@@ -147,7 +152,14 @@ void draw_rays(Window* window, Ray* rays, char** map, int offset_x, int offset_y
     for (int i = 0; i < NUMBER_RAYS; i++)
     {
         float distance = ray_hits_wall(map, &rays[i]);
-        rays[i].len = distance;
+
+        float view_angle = rays[NUMBER_RAYS / 2].angle;
+        float theta = rays[i].angle - view_angle;
+        while (theta > (float)M_PI) theta -= 2.0f * (float)M_PI;
+        while (theta < -(float)M_PI) theta += 2.0f * (float)M_PI;
+
+        rays[i].len = distance * cosf(theta);
+        if (rays[i].len < 0.0001f) rays[i].len = 0.0001f;
         if (i % RAY_DISPLAY_INTERVAL == 0)
             draw_ray(window, &rays[i], map, offset_x, offset_y, distance);
     }

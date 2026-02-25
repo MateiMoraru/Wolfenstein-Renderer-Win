@@ -13,7 +13,7 @@
 #define NUMBER_RAYS 512
 #define RAY_LEN 512
 
-#define SENSITIVITY 160
+#define SENSITIVITY 1 / 50
 
 #define SCALE 2.0
 
@@ -24,8 +24,8 @@
 #endif
 
 #ifndef MAP_WIDTH
-#define MAP_WIDTH 256
-#define MAP_HEIGHT 256
+#define MAP_WIDTH 128
+#define MAP_HEIGHT 128
 #endif
 
 #define RAY_CHECK_SKIP_INTERVAL 3

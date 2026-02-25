@@ -23,6 +23,7 @@ typedef struct
 	bool drawn;
 	bool active;
 
+	int deaths;
 	int hits;
 
 	Sprite sprite;
@@ -46,5 +47,6 @@ void enemy_draw_pos_size(Window* window, Enemy* enemy, float x, float y, float s
 void enemy_set_sprite(Enemy* enemy, Sprite* sprite);
 
 void enemy_update(Enemy* enemy, float dt, char** map, int rows, int cols, float target_x, float target_y);
+void enemy_set_position(Enemy* enemy, char** map, int x, int y);
 
 #endif
