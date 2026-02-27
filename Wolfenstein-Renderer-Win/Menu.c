@@ -8,6 +8,8 @@ Menu menu_init(Window* window, int buttons_len, SDL_Color color_background)
 	menu.buttons_len = 0;
 	menu.buttons_max = buttons_len;
 
+	menu.text_len = 0;
+
 	menu.color = color_background;
 
 	return menu;
@@ -33,6 +35,12 @@ int menu_draw(Menu* menu)
 
 		if (button_update(&menu->buttons[i]))
 			return menu->buttons[i].id;
+	}
+
+	for (int i = 0; i < menu->text_len; i++)
+	{
+		TextObj *text = &menu->text[i];
+		text_draw_shadow(menu->window->renderer, text->font, text->x, text->y, text->text, text->size, text->color);
 	}
 
 	return -1;
@@ -64,4 +72,35 @@ Menu main_menu_init(Window* window, Font* font, const int QUIT, const int START)
 	menu_add_button(&menu, &quit_button);
 
 	return menu;
+}
+
+void menu_add_text(Menu* menu, const char* text, int x, int y, SDL_Color color, Font* font, float font_size)
+{
+	if (menu->text_len >= MENU_MAX_TEXT_OBJ)
+	{
+		printf("Too many text objects in the menu!\n");
+		return;
+	}
+
+	menu->text[menu->text_len++] = (TextObj){
+		.x = x,
+		.y = y,
+		.size = font_size,
+		.color = color,
+		.text = text,
+		.font = font
+	};
+}
+
+void menu_remove_last_button(Menu* menu)
+{
+	menu->buttons_len--;
+}
+
+void menu_remove_button_at(Menu* menu, int index)
+{
+	if (!menu) return;
+	if (index < 0 || index >= menu->buttons_len) return;
+	for (int i = index + 1; i < menu->buttons_len; i++) menu->buttons[i - 1] = menu->buttons[i];
+	menu->buttons_len--;
 }

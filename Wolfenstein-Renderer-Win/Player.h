@@ -40,6 +40,8 @@ typedef struct
     bool found_key_blue;
     int found_keys;
 
+    bool end;
+
     bool seen_enemy;
 } Player;
 

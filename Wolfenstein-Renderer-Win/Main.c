@@ -56,8 +56,9 @@
 #define ID_BUTTON_QUIT 1
 #define ID_BUTTON_START 2
 
-#define ID_STATE_MAINMENU 3
-#define ID_STATE_INGAME 4
+#define ID_STATE_MAINMENU 1
+#define ID_STATE_INGAME 2
+#define ID_STATE_END 3
 
 #define ID_DOOR_YELLOW 1
 #define ID_DOOR_RED 2
@@ -453,6 +454,7 @@ void player_init(Player* player, RayCaster* ray_caster, char** map, int keys)
         .found_key_green = false,
         .found_key_blue = false,
         .found_keys = keys,
+        .end = false,
         .seen_enemy = false
     };
 
@@ -741,6 +743,25 @@ void draw_hud(Window* window, Player* player, Sprite* keys, Sprite* gun_shoot, S
         sprite_draw(window, sprite_crosshair_shoot, 2);  
 }
 
+void check_for_chests(Player* player, char** map)
+{
+    int x = player->x;
+    int y = player->y;
+
+    int range = 2;
+
+    for (int i = x - range; i < x + range; i++)
+    {
+        for (int j = y - range; j < y + range; j++)
+        {
+            if (map[j][i] == 'C')
+            {
+                player->end = true;
+            }
+        }
+    }
+}
+
 int main()
 {
     const char* map_load_file = "assets/data/map.txt";
@@ -816,7 +837,7 @@ int main()
     Player player;
     RayCaster ray_caster;
 
-    player_init(&player, &ray_caster, map, 0);
+    player_init(&player, &ray_caster, map, 4);
 
     printf("Player created\n");
 
@@ -869,8 +890,10 @@ int main()
 
     int middle_ray = NUMBER_RAYS / 2;
 
-
     Menu main_menu = main_menu_init(window, &font, ID_BUTTON_QUIT, ID_BUTTON_START);
+    Menu end_menu = main_menu_init(window, &font, ID_BUTTON_QUIT, ID_BUTTON_START);
+    menu_add_text(&end_menu, "Thanks for playing!!!!!!!!!!!!!!!!!", 100, 100, (SDL_Color) { 230, 39, 25, 255}, &font, FONT_SIZE);
+    menu_remove_button_at(&end_menu, 0);
 
     int state = ID_STATE_MAINMENU;
 
@@ -913,6 +936,10 @@ int main()
 
         shoot = false;
 
+        if (player.end == true)
+        {
+            state = ID_STATE_END;
+        }
      
         while (window_poll_event(window))
         {
@@ -981,6 +1008,8 @@ int main()
 
             handle_renderer_rotation(window, renderer, &mouse, &ray_caster, &player);
 
+            check_for_chests(&player, map);
+
             // Checks whether the player has seen the enemy for the first time
 
             if (!player.seen_enemy)
@@ -1013,7 +1042,7 @@ int main()
 
             draw_hud(window, &player, keys, &sprite_gun_shoot, &sprite_gun_model, &sprite_crosshair, &sprite_crosshair_shoot, gun_timer);
         }
-        else
+        else if (state == ID_STATE_MAINMENU)
         {
             // Handling main menu
             int button = menu_draw(&main_menu);
@@ -1038,6 +1067,12 @@ int main()
                 }
                 state = ID_STATE_INGAME;
             }
+        }
+        else
+        {
+            int button = menu_draw(&end_menu);
+
+            if (button == ID_BUTTON_QUIT) window->running = false;
         }
 
         window_show(window);
