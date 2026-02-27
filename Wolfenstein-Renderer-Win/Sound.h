@@ -38,6 +38,9 @@ void sound_play_modify(Sound* sound, float volume);
 // Loop
 void sound_play_loop(Sound* sound);
 
+// Stop playing a sound
+void sound_stop(Sound* sound);
+
 // Destroy function
 void sound_free(Sound* sound);
 

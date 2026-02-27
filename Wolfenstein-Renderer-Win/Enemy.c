@@ -45,6 +45,7 @@ void enemy_set_position(Enemy* enemy, char** map, int x, int y)
 	enemy->map_x = x;
 	enemy->map_y = y;
 
+	map[enemy->map_y][enemy->map_x] = 'E';
 
 }
 

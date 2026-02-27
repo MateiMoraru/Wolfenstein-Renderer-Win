@@ -2,32 +2,57 @@
 
 Button button_init(Window* window, Font* font, const char* string, int font_size, int x, int y, int w, int h, SDL_Color color, const int id)
 {
-	Button button;
+    Button button;
 
-	button.id = id;
+    button.id = id;
 
-	button.x = x;
-	button.y = y;
-	button.width = w;
-	button.height = h;
-	button.rect = (SDL_Rect){ x, y, w, h };
+    button.x = x;
+    button.y = y;
+    button.width = w;
+    button.height = h;
+    button.rect = (SDL_Rect){ x, y, w, h };
 
-	button.color = color;
+    button.color = color;
 
-	button.pressed = false;
-	button.font = font;
-	button.string = string;
-	button.font_size = font_size;
+    button.pressed = false;
+    button.hovered = false;
+    button.font = font;
+    button.string = string;
+    button.font_size = font_size;
 
-	int text_w = (int)strlen(string) * 8 * font_size;
-	int text_h = 8 * font_size;
+    int text_w = 0;
+    int text_h = 0;
 
-	button.text_x = x + (w - text_w) / 2;
-	button.text_y = y + (h - text_h) / 2;
+    if (font && string)
+    {
+        int lines = 1;
+        int line_len = 0;
+        int max_line_len = 0;
 
-	button.window = window;
+        for (const char* p = string; *p; p++)
+        {
+            if (*p == '\n')
+            {
+                if (line_len > max_line_len) max_line_len = line_len;
+                line_len = 0;
+                lines++;
+                continue;
+            }
+            line_len++;
+        }
 
-	return button;
+        if (line_len > max_line_len) max_line_len = line_len;
+
+        text_w = max_line_len * font->width;
+        text_h = lines * font->height;
+    }
+
+    button.text_x = x + (w - text_w) / 2;
+    button.text_y = y + (h - text_h) / 2;
+
+    button.window = window;
+
+    return button;
 }
 
 void button_draw(Button* button)

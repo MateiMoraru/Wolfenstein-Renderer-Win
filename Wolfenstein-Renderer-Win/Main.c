@@ -1,7 +1,10 @@
 /*
     A copy of the Wolfenstein renderer
 
-
+    - A* pathfinding
+    - Ray casting
+    - 3D
+    -
 
 
 
@@ -13,6 +16,10 @@
         Y, R, G, B = KEY
 
 
+*/
+
+/*
+    TODO: Add an ending menu
 */
 
 
@@ -63,18 +70,22 @@
 #define MIN_DISTANCE_ENEMY_FOLLOW 3700
 
 #define DOOR_OPEN_SFX_COOLDOWN 3.0f
+#define SHOOT_COOLDOWN 1.5f
 
 // Display message buffers
+char* buffer_start = "Look for all the keys and look for the chest!";
 char* buffer_found_key_yellow = "Yellow key found! 3 More to go.";
 char* buffer_found_key_red = "Red key found! 2 More to go.";
 char* buffer_found_key_green = "Green key found! 1 More to go.";
-char* buffer_found_key_blue = "Blue key found! You can now escape!";
+char* buffer_found_key_blue = "Finally done! Now look for the treasure";
+char* buffer_no_bullets = "Uh oh!!!!!! No bullets? Try to avoid the ghost:).";
 
 // Enemy spawn position
 int enemy_spawn_pos[4][2] = {
-    {1, 12},                   // Second spawn
-    {81, 36},
-    {69, 12}
+    {32, 20},
+    {57, 42},                   // Second spawn
+    {73, 58},
+    {96, 16}
 };
 
 // Self explainatory
@@ -130,6 +141,51 @@ void sounds_free()
     {
         sounds_free(&all_sounds[i]);
     }
+}
+
+// For calculating delta X basically
+void handle_mouse(Mouse* mouse)
+{
+    int xrel, yrel;
+    mouse->button = SDL_GetRelativeMouseState(&xrel, &yrel);
+    mouse->dx = xrel;
+    mouse->dy = yrel;
+}
+
+// Handle the keys related to the player movement
+void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
+{
+    const Uint8* keys = SDL_GetKeyboardState(NULL);
+
+    float forward = 0.0f;
+    float strafe = 0.0f;
+
+    float mult = 3.0f;
+    if (keys[SDL_SCANCODE_LSHIFT])
+    {
+        mult = 5.0f;
+        footstep_interval = 0.4f;
+    }
+    else
+    {
+        footstep_interval = 0.8f;
+    }
+
+    if (keys[SDL_SCANCODE_W]) forward += mult;
+    if (keys[SDL_SCANCODE_S]) forward -= mult;
+    if (keys[SDL_SCANCODE_A]) strafe -= mult;
+    if (keys[SDL_SCANCODE_D]) strafe += mult;
+
+    if (forward != 0.0f || strafe != 0.0f)
+    {
+        footstep_timer += dt;
+        if (footstep_timer > footstep_interval)
+        {
+            footstep_play();
+            footstep_timer = 0;
+        }
+    }
+    player_move(map, player, ray_caster, forward, strafe, dt); 
 }
 
 // Initialize map
@@ -191,65 +247,18 @@ void draw_map(SDL_Texture* map_tex, Window* window, int sx, int sy)
     SDL_RenderCopy(window->renderer, map_tex, NULL, &dst);
 }
 
-
-// For calculating delta X basically
-void handle_mouse(Mouse* mouse)
-{
-    int xrel, yrel;
-    mouse->button = SDL_GetRelativeMouseState(&xrel, &yrel);
-    mouse->dx = xrel;
-    mouse->dy = yrel;
-}
-
-// Handle the keys related to the player movement
-void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
-{
-    const Uint8* keys = SDL_GetKeyboardState(NULL);
-
-    float forward = 0.0f;
-    float strafe = 0.0f;
-
-    float mult = 3.0f;
-    if (keys[SDL_SCANCODE_LSHIFT])
-    {
-        mult = 5.0f;
-        footstep_interval = 0.4f;
-    }
-    else
-    {
-        footstep_interval = 0.8f;
-    }
-
-    if (keys[SDL_SCANCODE_W]) forward += mult;
-    if (keys[SDL_SCANCODE_S]) forward -= mult;
-    if (keys[SDL_SCANCODE_A]) strafe -= mult;
-    if (keys[SDL_SCANCODE_D]) strafe += mult;
-
-    if (forward != 0.0f || strafe != 0.0f)
-    {
-        footstep_timer += dt;
-        if (footstep_timer > footstep_interval)
-        {
-            footstep_play();
-            footstep_timer = 0;
-        }
-    }
-    player_move(map, player, ray_caster, forward, strafe, dt); 
-}
-
 // Load the map from a file
 void map_load(char** map, const char* map_load_file, Enemy* enemy, Door* doors)
 {
     FILE* fin = fopen(map_load_file, "r");
-    if (!fin)
-    {
+    if (!fin) 
+    { 
         printf("Failed to open map file\n");
-        return;
+        return; 
     }
 
     char buffer[1024];
     int y = 0;
-
     int door_index = 0;
 
     while (fgets(buffer, sizeof(buffer), fin) && y < MAP_HEIGHT)
@@ -258,41 +267,33 @@ void map_load(char** map, const char* map_load_file, Enemy* enemy, Door* doors)
         while (buffer[x] != '\0' && buffer[x] != '\n' && x < MAP_WIDTH)
         {
             map[y][x] = buffer[x];
+
             if (map[y][x] == 'E')
             {
                 enemy->map_x = x;
                 enemy->map_y = y;
             }
-            else if (map[y][x] == '1')
+            else if (map[y][x] >= '1' && map[y][x] <= '4')
             {
-                doors[door_index++] = door_init(ID_DOOR_YELLOW, x, y);
+                if (door_index < MAX_DOORS)
+                {
+                    int id = map[y][x] - '0';
+                    doors[door_index++] = door_init(id, x, y);
+                }
+                else
+                {
+                    printf("Too many doors in map (max=%d). Increase MAX_DOORS or reduce doors.\n", door_index);
+                }
             }
-            else if (map[y][x] == '2')
-            {
-                doors[door_index++] = door_init(ID_DOOR_RED, x, y);
-            }
-            else if (map[y][x] == '3')
-            {
-                doors[door_index++] = door_init(ID_DOOR_GREEN, x, y);
-            }
-            else if (map[y][x] == '4')
-            {
-                doors[door_index++] = door_init(ID_DOOR_BLUE, x, y);
-            }
+
             x++;
         }
 
-        while (x < MAP_WIDTH)
-        {
-            map[y][x] = ' ';
-            x++;
-        }
-
+        while (x < MAP_WIDTH) { map[y][x] = ' '; x++; }
         y++;
     }
 
     fclose(fin);
-
 }
 
 // ***** Never used
@@ -387,6 +388,12 @@ SDL_Texture* map_build_texture(Window* window, char** map)
                 g = COLOR_DOOR_BLUE.g; 
                 b = COLOR_DOOR_BLUE.b;
             }
+            else if (c == 'C')
+            {
+                r = 140;
+                g = 54;
+                b = 6;
+            }
             else
             {
                 r = 81;
@@ -471,7 +478,7 @@ void player_init(Player* player, RayCaster* ray_caster, char** map, int keys)
 // Update the enemy, doesnt check for death
 void update_enemy(Window* window, Enemy* enemy_ghost, Player* player, float* enemy_move_timer, char** map)
 {
-    if (enemy_ghost->active && *enemy_move_timer >= .4f)
+    if (enemy_ghost->active && *enemy_move_timer >= ENEMY_MOVE_COOLDOWN)
     {
         float dx = player->x - enemy_ghost->map_x;
         float dy = player->y - enemy_ghost->map_y;
@@ -500,9 +507,20 @@ void update_enemy(Window* window, Enemy* enemy_ghost, Player* player, float* ene
 // Also, changes the sprite of the enemy
 void handle_enemy(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sound* sfx_player_die, int* state, int middle_ray, float* gun_timer, bool shoot, Sprite* sprite_enemy_ghost_hit, Sprite* sprite_enemy_ghost)
 {
+    enemy_ghost->dist_to_player = dist_sq(enemy_ghost->map_x, enemy_ghost->map_y, player->x, player->y);
+
+    if (enemy_ghost->dist_to_player < MIN_GHOST_ACTIVE_DISTANCE)
+    {
+        enemy_ghost->active = true;
+    }
+    else
+    {
+        enemy_ghost->active = false;
+    }
+        
     if (enemy_ghost->active)
     {
-        if (dist_sq(enemy_ghost->map_x, enemy_ghost->map_y, player->x, player->y) < MIN_DISTANCE_DEATH)
+        if (enemy_ghost->dist_to_player < MIN_DISTANCE_DEATH)
         {
             *state = ID_STATE_MAINMENU;
             player->died = true;
@@ -529,11 +547,13 @@ void handle_enemy(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sou
 //      Resets its path
 //      Basically resets everything :)
 //      Dk why i dont create anew one
-void handle_enemy_die(Enemy* enemy_ghost, Sound* sfx_die, char** map, float* gun_timer)
+void handle_enemy_die(Enemy* enemy_ghost, RayCaster* ray_caster, Sound* sfx_die, char** map, float* gun_timer)
 {
     if (!enemy_ghost->active) return;
     if (enemy_ghost->hits < 3) return;
     if (*gun_timer <= 0.3f) return;
+    // Lag after the enemy dies.
+    // Probable issue: this code keeps running after it dies continously :)
 
     sound_play_modify(sfx_die, 1.0f);
 
@@ -553,6 +573,7 @@ void handle_enemy_die(Enemy* enemy_ghost, Sound* sfx_die, char** map, float* gun
     int spawn_idx = enemy_ghost->deaths - 1;
     if (spawn_idx < 0) spawn_idx = 0;
     if (spawn_idx > 2) spawn_idx = 2;
+    spawn_idx++;
 
     enemy_ghost->map_x = enemy_spawn_pos[spawn_idx][0];
     enemy_ghost->map_y = enemy_spawn_pos[spawn_idx][1];
@@ -565,7 +586,12 @@ void handle_enemy_die(Enemy* enemy_ghost, Sound* sfx_die, char** map, float* gun
     enemy_ghost->sprite.x = enemy_ghost->x;
     enemy_ghost->sprite.y = enemy_ghost->y;
 
-    enemy_ghost->active = true;
+    enemy_ghost->active = false;
+
+    for (int i = 0; i < NUMBER_RAYS; i++)
+    {
+        ray_caster->rays[i].hit_enemy = ' ';
+    }
 }
 
 // *****
@@ -661,17 +687,11 @@ void check_for_keys(Player* player, char**map, int* display_message_timer, char*
 }
 
 
-void handle_renderer_rotation(Window* window, Renderer* renderer, Mouse* mouse, RayCaster* ray_caster, Player* player, float* rotation_velocity, float rotation_smoothing)
+void handle_renderer_rotation(Window* window, Renderer* renderer, Mouse* mouse, RayCaster* ray_caster, Player* player)
 {
-    float target_rotation = mouse->dx * SENSITIVITY;
-
-    *rotation_velocity += (target_rotation - *rotation_velocity) * rotation_smoothing * window->delta_time;
-
-    float rotation_step = *rotation_velocity;
-
+    float rotation_step = mouse->dx * SENSITIVITY;
     player->direction += rotation_step;
     ray_caster_rotate(ray_caster, rotation_step);
-
     renderer_update(renderer);
 }
 
@@ -771,9 +791,11 @@ int main()
     sprite_crosshair_shoot.x = window->width / 2;
     sprite_crosshair_shoot.y = window->height / 2;
 
-    Sprite gun_model = sprite_load(window->renderer, "assets/sprites/gun_model.him", window->width / 2, window->height / 2);
-    Sprite gun_shoot = sprite_load(window->renderer, "assets/sprites/gun_explode.him", window->width / 2 - 128, window->height / 2 + 200);
-    Sprite gun_smoke = sprite_load(window->renderer, "assets/sprites/gun_smoke.him", 0, 0);
+    Sprite sprite_gun_model = sprite_load(window->renderer, "assets/sprites/gun_model.him", window->width / 2, window->height / 2);
+    Sprite sprite_gun_shoot = sprite_load(window->renderer, "assets/sprites/gun_explode.him", window->width / 2 - 128, window->height / 2 + 200);
+    Sprite sprite_gun_smoke = sprite_load(window->renderer, "assets/sprites/gun_smoke.him", 0, 0);
+
+    Sprite sprite_chest = sprite_load(window->renderer, "assets/sprites/chest.him", 0, 0);
 
     Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy.him", 101, 11, 20);
 
@@ -794,7 +816,7 @@ int main()
     Player player;
     RayCaster ray_caster;
 
-    player_init(&player, &ray_caster, map, 4);
+    player_init(&player, &ray_caster, map, 0);
 
     printf("Player created\n");
 
@@ -838,10 +860,12 @@ int main()
     Sound sfx_unlock = sound_load("assets/sfx/unlock.wav");
     Sound sfx_scare = sound_load("assets/sfx/scare.wav");
     Sound sfx_door_open = sound_load("assets/sfx/door_open.wav");
+    Sound sfx_no_bullets = sound_load("assets/sfx/empty_gun.wav");
 
     printf("\n");
 
     bool shoot = false;
+    bool displayed_no_bullets_message = false;
 
     int middle_ray = NUMBER_RAYS / 2;
 
@@ -857,7 +881,8 @@ int main()
     float door_open_sfx_timer = 10;
 
     char buffer[BUFFER_LEN];
-    char buffer_message[BUFFER_LEN] = "Find all the keys in order to escape.";
+    char buffer_message[BUFFER_LEN] = "HIHIHIHA";
+    snprintf(buffer_message, 64, buffer_start);
 
     while (window->running)
     {
@@ -906,13 +931,20 @@ int main()
             // Shooting mecanics
             else if (state == ID_STATE_INGAME && window->event.type == SDL_MOUSEBUTTONDOWN)
             {
-                if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > 1.5f && player.ammo > 0) // 1.5 sec delay? hmmm
+                if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > SHOOT_COOLDOWN) 
                 {
-                    player.ammo--;
-                    shoot = true;
-                    gun_timer = 0.0f;
+                    if (player.ammo > 0)
+                    {
+                        player.ammo--;
+                        shoot = true;
+                        gun_timer = 0.0f;
 
-                    sound_play_modify(&sfx_gun_explode, .4f);
+                        sound_play_modify(&sfx_gun_explode, .4f);
+                    }
+                    else
+                    {
+                        sound_play_modify(&sfx_no_bullets, .4f);
+                    }
                     //shoot_and_spawn_smoke(map, &ray_caster, smoke_puffs);
                 }
             }
@@ -928,6 +960,15 @@ int main()
             gun_timer += window->delta_time;
             door_open_sfx_timer += window->delta_time;
 
+            if (!displayed_no_bullets_message && player.ammo <= 0)
+            {
+                snprintf(buffer_message, 64, buffer_no_bullets);
+                display_message_timer = 0;
+                displayed_no_bullets_message = true;
+            }
+
+            ray_caster_cast_all(&ray_caster, map);
+
             update_enemy(window, &enemy_ghost, &player, &enemy_move_timer, map);
 
             handle_keys(map, &player, &ray_caster, window->delta_time);
@@ -938,7 +979,7 @@ int main()
 
             check_for_keys(&player, map, &display_message_timer, buffer_message, &sfx_unlock, &sfx_door_open, doors, &door_open_sfx_timer);
 
-            handle_renderer_rotation(window, renderer, &mouse, &ray_caster, &player, &rotation_velocity, rotation_smoothing);
+            handle_renderer_rotation(window, renderer, &mouse, &ray_caster, &player);
 
             // Checks whether the player has seen the enemy for the first time
 
@@ -958,10 +999,10 @@ int main()
 
         if (state == ID_STATE_INGAME)
         {
-            renderer_draw(renderer, window, &enemy_ghost, keys);
+            renderer_draw(renderer, window, &enemy_ghost, keys, &sprite_chest);
 
             handle_enemy(&enemy_ghost, &ray_caster, &player, &sfx_player_die, &state, middle_ray, &gun_timer, shoot, &sprite_enemy_ghost_hit, &sprite_enemy_ghost);
-            handle_enemy_die(&enemy_ghost, &sfx_die, map, &gun_timer);
+            handle_enemy_die(&enemy_ghost, &ray_caster, &sfx_die, map, &gun_timer);
 
             draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
@@ -970,7 +1011,7 @@ int main()
             draw_hud_text(window, &font, player.ammo, &display_message_timer, buffer, buffer_message);
 
 
-            draw_hud(window, &player, keys, &gun_shoot, &gun_model, &sprite_crosshair, &sprite_crosshair_shoot, gun_timer);
+            draw_hud(window, &player, keys, &sprite_gun_shoot, &sprite_gun_model, &sprite_crosshair, &sprite_crosshair_shoot, gun_timer);
         }
         else
         {
@@ -985,6 +1026,15 @@ int main()
                 if (player.died == true)
                 {
                     player_init(&player, &ray_caster, map, player.found_keys);
+
+                    sound_stop(&sfx_scare);
+
+                    // Also respawns the enemy
+                    int idx = enemy_ghost.deaths;
+                    if (idx < 0) idx = 0;
+                    if (idx > 3) idx = 3;
+                    enemy_set_position(&enemy_ghost, map, enemy_spawn_pos[idx][0], enemy_spawn_pos[idx][1]);
+
                 }
                 state = ID_STATE_INGAME;
             }

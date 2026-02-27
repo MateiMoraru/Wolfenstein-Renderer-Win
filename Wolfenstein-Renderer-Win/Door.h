@@ -9,8 +9,8 @@
 #ifndef DOOR_H
 #define DOOR_H
 
-#define MAX_DOORS 128
-#define MIN_UNLOCK_DISTANCE 30
+#define MAX_DOORS 320
+#define MIN_UNLOCK_DISTANCE 16
 
 #include <stdint.h>
 #include "Player.h"

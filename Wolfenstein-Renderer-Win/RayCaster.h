@@ -42,8 +42,8 @@ typedef struct
     float len;
 
     // Wall detection
-    char hit_id;
-    int hit_side;
+    char  hit_id;
+    int   hit_side;
     float hit_x;
     float hit_y;
 
@@ -55,10 +55,15 @@ typedef struct
     float hit_enemy_u;
 
     // Key detection
-    char hit_key;
+    char  hit_key;
     float hit_key_distance;
     float hit_key_x;
     float hit_key_y;
+
+    char hit_chest;
+    float hit_chest_distance;
+    float hit_chest_x;
+    float hit_chest_y;
 
 } Ray;
 
@@ -85,9 +90,11 @@ void draw_ray(Window* window, Ray* ray, char** map, float distance);
 void draw_rays(Window* window, Ray* rays, char** map, int x, int y);
 
 float ray_hits_wall(char** map, Ray* ray);
+void ray_caster_cast_all(RayCaster* ray_caster, char** map);
 
 
 // This function checks if the enemy is on screen
 bool ray_caster_hit_enemy(RayCaster* ray_caster);
+
 
 #endif

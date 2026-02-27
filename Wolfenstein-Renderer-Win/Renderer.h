@@ -79,6 +79,6 @@ Column compute_column(int max_height, Ray* ray);
 // Basic functions
 Renderer* renderer_init(Player* player, RayCaster* ray_caster, Window* window);
 void renderer_update(Renderer* renderer);
-void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite** keys);
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite** keys, Sprite* chest);
 
 #endif

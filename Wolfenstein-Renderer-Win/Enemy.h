@@ -9,6 +9,8 @@
 #include "AStar.h"
 
 #define ENEMY_MAX_PATH 512
+#define MIN_GHOST_ACTIVE_DISTANCE 1024
+#define ENEMY_MOVE_COOLDOWN 2
 
 typedef struct
 {
@@ -36,6 +38,8 @@ typedef struct
 	float repath_accum;
 	float repath_interval;
 	int last_goal_cell;
+
+	float dist_to_player;
 
 } Enemy;
 

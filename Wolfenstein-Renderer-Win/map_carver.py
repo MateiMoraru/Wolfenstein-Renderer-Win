@@ -1,7 +1,7 @@
 import random
 from collections import deque
 
-width, height = 256, 256
+width, height = 128, 128
 map_grid = [['#' for _ in range(width)] for _ in range(height)]
 
 start_x, start_y = 2, 2

@@ -268,12 +268,12 @@ void renderer_draw_texture(Renderer* renderer, Window* window, Ray* ray, SDL_Rec
     dst.x = rect->x;
     dst.w = rect->w;
     dst.h = (int)proj_height;
-    dst.y = window->height / 2 - dst.h / 2 / 1.5f;
+    dst.y = rect->y;
 
     SDL_RenderCopy(window->renderer, tex, NULL, &dst);
 }
 
-void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys)
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest)
 {
     SDL_Rect floor = { 0, window->height / 2, window->width, window->height };
     SDL_SetRenderDrawColor(window->renderer, COLOR_FLOOR.r, COLOR_FLOOR.g, COLOR_FLOOR.b, 255);
@@ -311,6 +311,29 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* key
 
         SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
         SDL_RenderFillRect(window->renderer, &rect);
+
+        if (ray.hit_chest == 'C')
+        {
+            SDL_Rect sprite_rect = rect;
+            sprite_rect.y += col.height / 2;//- col.height / 2;
+
+            float cx_chest = ray.hit_chest_x;
+            float cy_chest = ray.hit_chest_y;
+
+            float to_player_x = px - cx_chest;
+            float to_player_y = py - cy_chest;
+
+            float len = sqrtf(to_player_x * to_player_x + to_player_y * to_player_y);
+            if (len < 0.000001f) len = 0.000001f;
+
+            float nx_chest = to_player_x / len;
+            float ny_chest = to_player_y / len;
+
+            float rx_chest = -ny_chest;
+            float ry_chest = nx_chest;
+
+            renderer_draw_texture(renderer, window, &ray, &sprite_rect, nx_chest,  ny_chest,cx_chest, cy_chest, px, py, rx_chest, ry_chest, 0.25f, chest->width, chest->tex_columns);
+        }
 
         if (ray.hit_key != ' ')
         {

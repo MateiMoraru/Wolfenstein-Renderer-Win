@@ -80,8 +80,9 @@ void sound_play_modify(Sound* sound, float volume)
             printf("Failed to open SFX device: %s\n", SDL_GetError());
             return;
         }
-        SDL_PauseAudioDevice(sound->device, 0);
     }
+
+    SDL_PauseAudioDevice(sound->device, 0);
 
     Uint8* buffer = (Uint8*)malloc(sound->wav_length);
     if (!buffer) return;
@@ -93,7 +94,6 @@ void sound_play_modify(Sound* sound, float volume)
     if (sdl_vol > SDL_MIX_MAXVOLUME) sdl_vol = SDL_MIX_MAXVOLUME;
 
     SDL_MixAudioFormat(buffer, sound->wav_buffer, sound->wav_spec.format, sound->wav_length, sdl_vol);
-
     SDL_QueueAudio(sound->device, buffer, sound->wav_length);
 
     free(buffer);
@@ -143,6 +143,15 @@ void sound_free(Sound* sound)
         sound->wav_buffer = NULL;
         sound->wav_length = 0;
     }
+}
+
+void sound_stop(Sound* sound)
+{
+    if (!sound) return;
+    if (sound->device == 0) return;
+
+    SDL_ClearQueuedAudio(sound->device);
+    SDL_PauseAudioDevice(sound->device, 1);
 }
 
 void sound_close()

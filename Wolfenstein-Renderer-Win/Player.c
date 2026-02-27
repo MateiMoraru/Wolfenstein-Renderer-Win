@@ -18,41 +18,83 @@ void player_set_position(char** map, Player* player, RayCaster* ray_caster, floa
     ray_caster_move(ray_caster, x, y);
 }
 
+static bool is_solid_cell(char c)
+{
+    return c != ' ';
+}
+
+static int circle_hits_wall(char** map, float x, float y, float r)
+{
+    int min_x = (int)floorf(x - r);
+    int max_x = (int)floorf(x + r);
+    int min_y = (int)floorf(y - r);
+    int max_y = (int)floorf(y + r);
+
+    if (min_x < 0) min_x = 0;
+    if (min_y < 0) min_y = 0;
+    if (max_x >= MAP_WIDTH) max_x = MAP_WIDTH - 1;
+    if (max_y >= MAP_HEIGHT) max_y = MAP_HEIGHT - 1;
+
+    for (int ty = min_y; ty <= max_y; ty++)
+    {
+        for (int tx = min_x; tx <= max_x; tx++)
+        {
+            if (!is_solid_cell(map[ty][tx])) continue;
+
+            float nearest_x = x;
+            if (nearest_x < (float)tx) nearest_x = (float)tx;
+            if (nearest_x > (float)(tx + 1)) nearest_x = (float)(tx + 1);
+
+            float nearest_y = y;
+            if (nearest_y < (float)ty) nearest_y = (float)ty;
+            if (nearest_y > (float)(ty + 1)) nearest_y = (float)(ty + 1);
+
+            float dx = x - nearest_x;
+            float dy = y - nearest_y;
+
+            if (dx * dx + dy * dy < r * r) return 1;
+        }
+    }
+
+    return 0;
+}
+
 void player_move(char** map, Player* player, RayCaster* ray_caster, float forward, float strafe, float delta_time)
 {
     float dir = DEG_TO_RAD(player->direction + DIR_OFFSET);
 
-    float dx = cosf(dir) * forward - sinf(dir) * strafe * SPEED_MULT;
-    float dy = sinf(dir) * forward + cosf(dir) * strafe * SPEED_MULT;
+    float ax = cosf(dir) * forward - sinf(dir) * strafe * SPEED_MULT;
+    float ay = sinf(dir) * forward + cosf(dir) * strafe * SPEED_MULT;
 
-    player->vx += dx * ACCELERATION * delta_time;
-    player->vy += dy * ACCELERATION * delta_time;
+    player->vx += ax * ACCELERATION * delta_time;
+    player->vy += ay * ACCELERATION * delta_time;
 
-    player->vx *= 1.0f - ACCELERATION / 2 * delta_time;
-    player->vy *= 1.0f - ACCELERATION / 2 * delta_time;
+    float damp = 1.0f - (ACCELERATION * 0.5f) * delta_time;
+    if (damp < 0.0f) damp = 0.0f;
+    player->vx *= damp;
+    player->vy *= damp;
 
-    float len = sqrtf(player->vx * player->vx + player->vy * player->vy);
-    if (len > player->speed)
+    float vlen = sqrtf(player->vx * player->vx + player->vy * player->vy);
+    if (vlen > player->speed)
     {
-        player->vx = player->vx / len * player->speed;
-        player->vy = player->vy / len * player->speed;
+        float s = player->speed / vlen;
+        player->vx *= s;
+        player->vy *= s;
     }
 
-    float new_x = player->x + player->vx * delta_time;
-    float new_y = player->y + player->vy * delta_time;
+    float r = 0.25f;
 
-    if (map[(int)new_y][(int)new_x] == ' ')
-    {
-        player->x = new_x;
-        player->y = new_y;
-    }
-    else
-    {
-        if (map[(int)player->y][(int)new_x] == ' ')
-            player->x = new_x;
-        if (map[(int)new_y][(int)player->x] == ' ')
-            player->y = new_y;
-    }
+    float target_x = player->x + player->vx * delta_time;
+    float target_y = player->y + player->vy * delta_time;
+
+    float new_x = player->x;
+    float new_y = player->y;
+
+    if (!circle_hits_wall(map, target_x, new_y, r)) new_x = target_x;
+    if (!circle_hits_wall(map, new_x, target_y, r)) new_y = target_y;
+
+    player->x = new_x;
+    player->y = new_y;
 
     ray_caster_set_position(ray_caster, player->x, player->y);
 }

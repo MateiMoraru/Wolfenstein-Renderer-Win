@@ -1,151 +1,222 @@
 #include "AStar.h"
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 
-int abs_i(int x) 
-{ 
-    return x < 0 ? -x : x; 
-}
-
-int manhattan(point a, point b) 
-{ 
-    return abs_i(a.r - b.r) + abs_i(a.c - b.c); 
-}
-
-int idx(int r, int c, int cols) 
-{ 
-    return r * cols + c; 
-}
-
-int in_bounds(int r, int c, int rows, int cols) 
-{ 
-    return (unsigned)r < (unsigned)rows && (unsigned)c < (unsigned)cols; 
-}
-
-int is_walkable(char ch) 
-{ 
-    return ch == ' '; 
-}
-
-int reconstruct_path(int start_i, int goal_i, const int* parent, int cols, char* grid_out, int rows, int cols2) 
+typedef struct
 {
-    int cur = goal_i;
-    int steps = 0;
-    while (cur != -1 && cur != start_i) 
-    {
-        int r = cur / cols;
-        int c = cur % cols;
-        if (grid_out[idx(r, c, cols2)] != 'S' && grid_out[idx(r, c, cols2)] != 'G') grid_out[idx(r, c, cols2)] = '*';
-        cur = parent[cur];
-        steps++;
-    }
-    return (cur == start_i) ? steps : -1;
+    int node;
+    int f;
+} heap_item;
+
+static int abs_i(int x)
+{
+    return x < 0 ? -x : x;
 }
 
-int astar_grid(const char* grid, int rows, int cols, point start, point goal, char* grid_out) 
+static int manhattan(point a, point b)
+{
+    return abs_i(a.r - b.r) + abs_i(a.c - b.c);
+}
+
+static int idx(int r, int c, int cols)
+{
+    return r * cols + c;
+}
+
+static int in_bounds(int r, int c, int rows, int cols)
+{
+    return (unsigned)r < (unsigned)rows &&
+        (unsigned)c < (unsigned)cols;
+}
+
+static int is_walkable(char ch)
+{
+    return ch == ' ' || ch == 'E';
+}
+
+static int* g_cost;
+static int* f_cost;
+static int* parent_node;
+static unsigned char* closed_set;
+
+static heap_item* heap;
+static int heap_size;
+static int capacity;
+
+static void ensure_capacity(int n)
+{
+    if (capacity >= n)
+        return;
+
+    g_cost = realloc(g_cost, n * sizeof(int));
+    f_cost = realloc(f_cost, n * sizeof(int));
+    parent_node = realloc(parent_node, n * sizeof(int));
+    closed_set = realloc(closed_set, n * sizeof(unsigned char));
+    heap = realloc(heap, n * sizeof(heap_item));
+
+    capacity = n;
+}
+
+static void heap_swap(heap_item* a, heap_item* b)
+{
+    heap_item tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+static void heap_push(heap_item item)
+{
+    int i = heap_size++;
+    heap[i] = item;
+
+    while (i > 0)
+    {
+        int parent = (i - 1) / 2;
+        if (heap[parent].f <= heap[i].f)
+            break;
+
+        heap_swap(&heap[parent], &heap[i]);
+        i = parent;
+    }
+}
+
+static heap_item heap_pop(void)
+{
+    heap_item top = heap[0];
+    heap[0] = heap[--heap_size];
+
+    int i = 0;
+    while (1)
+    {
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
+        int smallest = i;
+
+        if (left < heap_size &&
+            heap[left].f < heap[smallest].f)
+            smallest = left;
+
+        if (right < heap_size &&
+            heap[right].f < heap[smallest].f)
+            smallest = right;
+
+        if (smallest == i)
+            break;
+
+        heap_swap(&heap[i], &heap[smallest]);
+        i = smallest;
+    }
+
+    return top;
+}
+
+int astar_grid(
+    const char* grid,
+    int rows,
+    int cols,
+    point start,
+    point goal,
+    char* grid_out
+)
 {
     int n = rows * cols;
 
-    int* g = (int*)malloc((size_t)n * sizeof(int));
-    int* f = (int*)malloc((size_t)n * sizeof(int));
+    ensure_capacity(n);
 
-    int* parent = (int*)malloc((size_t)n * sizeof(int));
-
-    unsigned char* in_open = (unsigned char*)calloc((size_t)n, 1);
-    unsigned char* closed = (unsigned char*)calloc((size_t)n, 1);
-
-    if (!g || !f || !parent || !in_open || !closed) 
+    for (int i = 0; i < n; i++)
     {
-        free(g); free(f); free(parent); free(in_open); free(closed);
-        return -2;
+        g_cost[i] = INT_MAX;
+        f_cost[i] = INT_MAX;
+        parent_node[i] = -1;
+        closed_set[i] = 0;
+
+        if (grid_out)
+            grid_out[i] = grid[i];
     }
 
-    for (int i = 0; i < n; i++) 
-    {
-        g[i] = INT_MAX / 4;
-        f[i] = INT_MAX / 4;
-        parent[i] = -1;
-        grid_out[i] = grid[i];
-    }
+    if (!in_bounds(start.r, start.c, rows, cols) ||
+        !in_bounds(goal.r, goal.c, rows, cols))
+        return 0;
 
     int s = idx(start.r, start.c, cols);
     int t = idx(goal.r, goal.c, cols);
 
-    if (!in_bounds(start.r, start.c, rows, cols) || !in_bounds(goal.r, goal.c, rows, cols)) 
+    if (!is_walkable(grid[s]) ||
+        !is_walkable(grid[t]))
+        return 0;
+
+    heap_size = 0;
+
+    g_cost[s] = 0;
+    f_cost[s] = manhattan(start, goal);
+
+    heap_push((heap_item) { s, f_cost[s] });
+
+    const int dr[4] = { -1, 1, 0, 0 };
+    const int dc[4] = { 0, 0, -1, 1 };
+
+    while (heap_size > 0)
     {
-        free(g); free(f); free(parent); free(in_open); free(closed);
-        return -3;
-    }
-    if (!is_walkable(grid[s]) || !is_walkable(grid[t])) 
-    {
-        free(g); free(f); free(parent); free(in_open); free(closed);
-        return -4;
-    }
+        heap_item current_item = heap_pop();
+        int current = current_item.node;
 
-    g[s] = 0;
-    f[s] = manhattan(start, goal);
-    in_open[s] = 1;
+        if (closed_set[current])
+            continue;
 
-    const int dr[4] = { -1,  1,  0,  0 };
-    const int dc[4] = { 0,  0, -1,  1 };
-
-    while (1) 
-    {
-        int current = -1;
-        int best_f = INT_MAX;
-
-        for (int i = 0; i < n; i++) 
+        if (current == t)
         {
-            if (in_open[i] && !closed[i] && f[i] < best_f) 
+            int cur = t;
+            while (cur != -1 && cur != s)
             {
-                best_f = f[i];
-                current = i;
+                if (grid_out)
+                {
+                    int r = cur / cols;
+                    int c = cur % cols;
+                    if (grid_out[idx(r, c, cols)] != 'S' &&
+                        grid_out[idx(r, c, cols)] != 'G')
+                        grid_out[idx(r, c, cols)] = '*';
+                }
+                cur = parent_node[cur];
             }
+            return 1;
         }
 
-        if (current == -1) 
-        {
-            free(g); free(f); free(parent); free(in_open); free(closed);
-            return 0;
-        }
-
-        if (current == t) 
-        {
-            int steps = reconstruct_path(s, t, parent, cols, grid_out, rows, cols);
-            free(g); free(f); free(parent); free(in_open); free(closed);
-            return steps >= 0 ? 1 : 0;
-        }
-
-        in_open[current] = 0;
-        closed[current] = 1;
+        closed_set[current] = 1;
 
         int cr = current / cols;
         int cc = current % cols;
 
-        for (int k = 0; k < 4; k++) 
+        for (int k = 0; k < 4; k++)
         {
             int nr = cr + dr[k];
             int nc = cc + dc[k];
 
-            if (!in_bounds(nr, nc, rows, cols)) 
+            if (!in_bounds(nr, nc, rows, cols))
                 continue;
 
             int ni = idx(nr, nc, cols);
 
-            if (closed[ni]) continue;
-
-            if (!is_walkable(grid[ni])) 
+            if (closed_set[ni])
                 continue;
 
-            int tentative_g = g[current] + 1;
+            if (!is_walkable(grid[ni]))
+                continue;
 
-            if (tentative_g < g[ni]) 
+            int tentative_g = g_cost[current] + 1;
+
+            if (tentative_g < g_cost[ni])
             {
-                parent[ni] = current;
-                g[ni] = tentative_g;
-                point np = (point){ nr, nc };
+                parent_node[ni] = current;
+                g_cost[ni] = tentative_g;
 
-                f[ni] = tentative_g + manhattan(np, goal);
-                in_open[ni] = 1;
+                point np = { nr, nc };
+                f_cost[ni] = tentative_g + manhattan(np, goal);
+
+                heap_push((heap_item) { ni, f_cost[ni] });
             }
         }
     }
+
+    return 0;
 }
