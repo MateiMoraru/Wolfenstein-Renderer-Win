@@ -17,6 +17,9 @@
     TODO: Add ammo
 */
 
+// Staic config
+#define SDL_MAIN_HANDLED
+#define SDL_STATIC
 
 
 #include <stdio.h>
