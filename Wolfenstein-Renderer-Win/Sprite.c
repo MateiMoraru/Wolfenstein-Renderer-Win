@@ -114,3 +114,12 @@ void sprite_draw(Window* window, Sprite* sprite, float scale)
     SDL_Rect dst = { (int)sprite->x, (int)sprite->y, (int)(sprite->width * scale), (int)(sprite->height * scale) };
     SDL_RenderCopy(window->renderer, sprite->texture, NULL, &dst);
 }
+
+void sprite_draw_pos(Window* window, Sprite* sprite, float scale, int x, int y)
+{
+    Uint8 m = (Uint8)(255.0f * clamp01(sprite->shade));
+    SDL_SetTextureColorMod(sprite->texture, m, m, m);
+
+    SDL_Rect dst = { x, y, (int)(sprite->width * scale), (int)(sprite->height * scale) };
+    SDL_RenderCopy(window->renderer, sprite->texture, NULL, &dst);
+}

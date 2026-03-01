@@ -43,6 +43,9 @@ typedef struct
     bool end;
 
     bool seen_enemy;
+
+    int hit_entity_x;
+    int hit_entity_y;
 } Player;
 
 void player_set_position(char** map, Player* player, RayCaster* ray_caster, float x, float y);

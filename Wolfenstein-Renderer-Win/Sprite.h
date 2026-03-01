@@ -28,5 +28,6 @@ typedef struct
 
 Sprite sprite_load(SDL_Renderer* renderer, const char* filename, float x, float y);
 void sprite_draw(Window* window, Sprite* sprite, float scale);
+void sprite_draw_pos(Window* window, Sprite* sprite, float scale, int x, int y);
 
 #endif

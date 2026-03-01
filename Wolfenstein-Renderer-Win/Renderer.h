@@ -65,7 +65,7 @@ typedef struct
     Column pixels[NUMBER_RAYS];
 } Renderer;
 
-// Not used yet
+// Not used yet, probably will never use as its too much for me
 void smoke_spawn(Smoke_puff* puffs, float x, float y);
 void smoke_update(Smoke_puff* puffs, float dt);
 float wrap_angle(float a);
@@ -79,6 +79,8 @@ Column compute_column(int max_height, Ray* ray);
 // Basic functions
 Renderer* renderer_init(Player* player, RayCaster* ray_caster, Window* window);
 void renderer_update(Renderer* renderer);
-void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite** keys, Sprite* chest);
+
+// Draws the world as 3D
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest, Sprite* ammo);
 
 #endif

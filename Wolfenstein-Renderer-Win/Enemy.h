@@ -10,7 +10,7 @@
 
 #define ENEMY_MAX_PATH 512
 #define MIN_GHOST_ACTIVE_DISTANCE 1024
-#define ENEMY_MOVE_COOLDOWN 2
+#define ENEMY_MOVE_COOLDOWN 0.5f
 
 typedef struct
 {

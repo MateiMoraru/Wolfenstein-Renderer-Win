@@ -25,10 +25,8 @@ void ray_caster_init(int x, int y, int direction, int fov, RayCaster* ray_caster
         ray_caster->rays[i].y = (float)y;
         ray_caster->rays[i].angle = angle;
         ray_caster->rays[i].hit_id = ' ';
-        ray_caster->rays[i].hit_enemy = ' ';
-        ray_caster->rays[i].hit_enemy_distance = 1e30f;
-        ray_caster->rays[i].hit_key = ' ';
-        ray_caster->rays[i].hit_key_distance = 1e30f;
+        ray_caster->rays[i].hit_entity = ' ';
+        ray_caster->rays[i].hit_entity_distance = 1e30f;
         ray_caster->rays[i].len = 1e30f;
     }
 }
@@ -74,21 +72,11 @@ float ray_hits_wall(char** map, Ray* ray)
     ray->hit_x = -1.0f;
     ray->hit_y = -1.0f;
 
-    ray->hit_enemy = ' ';
-    ray->hit_enemy_distance = 1e30f;
-    ray->hit_enemy_x = -1.0f;
-    ray->hit_enemy_y = -1.0f;
-    ray->hit_enemy_u = 0.0f;
-
-    ray->hit_key = ' ';
-    ray->hit_key_distance = 1e30f;
-    ray->hit_key_x = -1.0f;
-    ray->hit_key_y = -1.0f;
-
-    ray->hit_chest = ' ';
-    ray->hit_chest_distance = 1e30f;
-    ray->hit_chest_x = -1.0f;
-    ray->hit_chest_y = -1.0f;
+    ray->hit_entity = ' ';
+    ray->hit_entity_distance = 1e30f;
+    ray->hit_entity_x = -1.0f;
+    ray->hit_entity_y = -1.0f;
+    ray->hit_entity_u = 0.0f;
 
     float x = ray->x;
     float y = ray->y;
@@ -137,36 +125,14 @@ float ray_hits_wall(char** map, Ray* ray)
         if (t <= 0.0f)
             continue;
 
-        if (cell == 'E')
+        if (cell == 'E' || cell == 'Y' || cell == 'R' || cell == 'G' || cell == 'B' || cell == 'C' || cell == 'A')
         {
-            if (t < ray->hit_enemy_distance)
+            if (t < ray->hit_entity_distance)
             {
-                ray->hit_enemy = 'E';
-                ray->hit_enemy_distance = t;
-                ray->hit_enemy_x = x + dx * t;
-                ray->hit_enemy_y = y + dy * t;
-            }
-        }
-
-        if (cell == 'Y' || cell == 'R' || cell == 'G' || cell == 'B')
-        {
-            if (t < ray->hit_key_distance)
-            {
-                ray->hit_key = cell;
-                ray->hit_key_distance = t;
-                ray->hit_key_x = (float)mapx + 0.5f;
-                ray->hit_key_y = (float)mapy + 0.5f;
-            }
-        }
-
-        if (cell == 'C')
-        {
-            if (t < ray->hit_chest_distance)
-            {
-                ray->hit_chest = 'C';
-                ray->hit_chest_distance = t;
-                ray->hit_chest_x = (float)mapx + 0.5f;
-                ray->hit_chest_y = (float)mapy + 0.5f;
+                ray->hit_entity = cell;
+                ray->hit_entity_distance = t;
+                ray->hit_entity_x = (float)mapx + 0.5f;
+                ray->hit_entity_y = (float)mapy + 0.5f;
             }
         }
 
@@ -178,28 +144,12 @@ float ray_hits_wall(char** map, Ray* ray)
             ray->hit_y = y + dy * t;
             ray->len = t;
 
-            if (ray->hit_enemy != ' ' && ray->hit_enemy_distance >= t)
+            if (ray->hit_entity != ' ' && ray->hit_entity_distance >= t)
             {
-                ray->hit_enemy = ' ';
-                ray->hit_enemy_distance = 1e30f;
-                ray->hit_enemy_x = -1.0f;
-                ray->hit_enemy_y = -1.0f;
-            }
-
-            if (ray->hit_key != ' ' && ray->hit_key_distance >= t)
-            {
-                ray->hit_key = ' ';
-                ray->hit_key_distance = 1e30f;
-                ray->hit_key_x = -1.0f;
-                ray->hit_key_y = -1.0f;
-            }
-
-            if (ray->hit_chest != ' ' && ray->hit_chest_distance >= t)
-            {
-                ray->hit_chest = ' ';
-                ray->hit_chest_distance = 1e30f;
-                ray->hit_chest_x = -1.0f;
-                ray->hit_chest_y = -1.0f;
+                ray->hit_entity = ' ';
+                ray->hit_entity_distance = 1e30f;
+                ray->hit_entity_x = -1.0f;
+                ray->hit_entity_y = -1.0f;
             }
 
             return t;
@@ -234,7 +184,7 @@ bool ray_caster_hit_enemy(RayCaster* ray_caster)
 {
     for (int i = 0; i < NUMBER_RAYS; i += RAY_CHECK_SKIP_INTERVAL)
     {
-        if (ray_caster->rays[i].hit_enemy != ' ')
+        if (ray_caster->rays[i].hit_entity == 'E')
         {
             return true;
         }

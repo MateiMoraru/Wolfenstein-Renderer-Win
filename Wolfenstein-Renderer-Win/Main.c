@@ -4,11 +4,6 @@
     - A* pathfinding
     - Ray casting
     - 3D
-    -
-
-
-
-
 
 
     Keys in the map.txt:
@@ -19,7 +14,7 @@
 */
 
 /*
-    TODO: Add an ending menu
+    TODO: Add ammo
 */
 
 
@@ -72,6 +67,17 @@
 
 #define DOOR_OPEN_SFX_COOLDOWN 3.0f
 #define SHOOT_COOLDOWN 1.5f
+
+#define JUMPSCARE_COOLDOWN 1.0f
+
+typedef struct RectScare
+{
+    int x, y;
+    int w, h;
+    bool active;
+    float timer;
+    SDL_Color color;
+} RectScare;
 
 // Display message buffers
 char* buffer_start = "Look for all the keys and look for the chest!";
@@ -455,7 +461,9 @@ void player_init(Player* player, RayCaster* ray_caster, char** map, int keys)
         .found_key_blue = false,
         .found_keys = keys,
         .end = false,
-        .seen_enemy = false
+        .seen_enemy = false,
+        .hit_entity_x = -1,
+        .hit_entity_y = -1
     };
 
     if (keys >= 1)
@@ -529,7 +537,7 @@ void handle_enemy(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sou
             sound_play_modify(sfx_player_die, 0.8f);
         }
 
-        if (ray_caster->rays[middle_ray].hit_enemy == 'E' && *gun_timer < 0.3f)
+        if (ray_caster->rays[middle_ray].hit_entity == 'E' && *gun_timer < 0.3f)
         {
             enemy_set_sprite(enemy_ghost, sprite_enemy_ghost_hit);
 
@@ -549,7 +557,7 @@ void handle_enemy(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sou
 //      Resets its path
 //      Basically resets everything :)
 //      Dk why i dont create anew one
-void handle_enemy_die(Enemy* enemy_ghost, RayCaster* ray_caster, Sound* sfx_die, char** map, float* gun_timer)
+void handle_enemy_die(Enemy* enemy_ghost, RayCaster* ray_caster, Player* player, Sound* sfx_die, char** map, float* gun_timer)
 {
     if (!enemy_ghost->active) return;
     if (enemy_ghost->hits < 3) return;
@@ -590,9 +598,11 @@ void handle_enemy_die(Enemy* enemy_ghost, RayCaster* ray_caster, Sound* sfx_die,
 
     enemy_ghost->active = false;
 
+    player->seen_enemy = false;
+
     for (int i = 0; i < NUMBER_RAYS; i++)
     {
-        ray_caster->rays[i].hit_enemy = ' ';
+        ray_caster->rays[i].hit_entity = ' ';
     }
 }
 
@@ -703,8 +713,9 @@ void draw_hud_text(Window* window, Font* font, int ammo, float* display_message_
     text_draw(window->renderer, font, 10, 10, buffer, 2, (SDL_Color) { 255, 255, 255, 255 });
 
     sprintf_s(buffer, BUFFER_LEN, "AMMO: %d", ammo);
-    text_draw_shadow(window->renderer, font, window->width / 2 - strlen(buffer) * FONT_SIZE * 8 / 2, window->height - FONT_SIZE, buffer, 1, (SDL_Color) { 105, 8, 20, 255 });
+    text_draw_shadow(window->renderer, font, window->width / 2 - 8 * FONT_SIZE * 8 / 2, window->height - FONT_SIZE, buffer, 1, (SDL_Color) { 105, 8, 20, 255 });
 
+    // Handles the temporary display message
     *display_message_timer += window->delta_time;
 
     if (*display_message_timer < 5.0f)
@@ -713,15 +724,18 @@ void draw_hud_text(Window* window, Font* font, int ammo, float* display_message_
     }
 }
 
-void draw_hud(Window* window, Player* player, Sprite* keys, Sprite* gun_shoot, Sprite* gun_model, Sprite* sprite_crosshair, Sprite* sprite_crosshair_shoot, float gun_timer)
+void draw_hud(Window* window, Player* player, Sprite* keys, Sprite* gun_shoot, Sprite* gun_model, Sprite* sprite_crosshair, Sprite* sprite_crosshair_shoot, Sprite* sprite_ammo, float gun_timer)
 {
+    // Draws the smoke and fire from shooting
     if (gun_timer < 0.5f)
     {
         sprite_draw(window, gun_shoot, 15);
     }
 
+    // Draws the gun
     sprite_draw_hud(window, gun_model, 15);
 
+    // Draws the keys the player has
     if (player->found_keys > 0)
     {
         int width = 64;
@@ -737,13 +751,17 @@ void draw_hud(Window* window, Player* player, Sprite* keys, Sprite* gun_shoot, S
         }
     }
 
+    // Draws crosshair
     if (gun_timer > 0.4f)
         sprite_draw(window, sprite_crosshair, 2);
     else
         sprite_draw(window, sprite_crosshair_shoot, 2);  
+
+    // Draws the ammo icon
+    sprite_draw_pos(window, sprite_ammo, 2, window->width / 2 - 8 * FONT_SIZE * 8 / 2 - 40, window->height - FONT_SIZE * 2);
 }
 
-void check_for_chests(Player* player, char** map)
+bool check_for_entity(Player* player, char** map, char* c)
 {
     int x = player->x;
     int y = player->y;
@@ -754,12 +772,18 @@ void check_for_chests(Player* player, char** map)
     {
         for (int j = y - range; j < y + range; j++)
         {
-            if (map[j][i] == 'C')
+            if (i < 0 || j < 0 || i >= MAP_WIDTH || j >= MAP_HEIGHT)
+                continue;
+            if (map[j][i] == c)
             {
-                player->end = true;
+                player->hit_entity_x = i;
+                player->hit_entity_y = j;
+                return true;
             }
         }
     }
+
+    return false;
 }
 
 int main()
@@ -818,6 +842,8 @@ int main()
 
     Sprite sprite_chest = sprite_load(window->renderer, "assets/sprites/chest.him", 0, 0);
 
+    Sprite sprite_ammo = sprite_load(window->renderer, "assets/sprites/ammo.him", 0, 0);
+
     Enemy enemy_ghost = enemy_init(window, "assets/sprites/enemy.him", 101, 11, 20);
 
     Sprite keys[4] =
@@ -837,7 +863,7 @@ int main()
     Player player;
     RayCaster ray_caster;
 
-    player_init(&player, &ray_caster, map, 4);
+    player_init(&player, &ray_caster, map, 0);
 
     printf("Player created\n");
 
@@ -882,6 +908,7 @@ int main()
     Sound sfx_scare = sound_load("assets/sfx/scare.wav");
     Sound sfx_door_open = sound_load("assets/sfx/door_open.wav");
     Sound sfx_no_bullets = sound_load("assets/sfx/empty_gun.wav");
+    Sound sfx_reload = sound_load("assets/sfx/reload.wav");
 
     printf("\n");
 
@@ -907,6 +934,17 @@ int main()
     char buffer_message[BUFFER_LEN] = "HIHIHIHA";
     snprintf(buffer_message, 64, buffer_start);
 
+    RectScare jumpscare_screen =
+    {
+        .x = 0,
+        .y = 0,
+        .w = window->width,
+        .h = window->height,
+        .active = false,
+        .timer = 0,
+        .color = (SDL_Color) {255, 255, 255, 255}
+    };
+
     while (window->running)
     {
 
@@ -926,11 +964,13 @@ int main()
         if (state == ID_STATE_INGAME)
         {
             handle_mouse(&mouse);
+
+            // Enables the mouse (like so it shows) 
             SDL_SetRelativeMouseMode(SDL_TRUE);
         }
         else
         {
-
+            // Disables the mouse cursor
             SDL_SetRelativeMouseMode(SDL_FALSE);
         }
 
@@ -955,7 +995,7 @@ int main()
                 state = ID_STATE_MAINMENU;
             }
 
-            // Shooting mecanics
+            // Shooting mechanics
             else if (state == ID_STATE_INGAME && window->event.type == SDL_MOUSEBUTTONDOWN)
             {
                 if (window->event.button.button == SDL_BUTTON_LEFT && gun_timer > SHOOT_COOLDOWN) 
@@ -1008,7 +1048,19 @@ int main()
 
             handle_renderer_rotation(window, renderer, &mouse, &ray_caster, &player);
 
-            check_for_chests(&player, map);
+            // Checks whether the player is near the chest
+            if (check_for_entity(&player, map, 'C'))
+            {
+                player.end = true;
+            }
+
+            // Checks wheteher the player is near ammo
+            if (check_for_entity(&player, map, 'A'))
+            {
+                map[player.hit_entity_y][player.hit_entity_x] = ' ';
+                player.ammo += 5;
+                sound_play_modify(&sfx_reload, 0.7f);
+            }
 
             // Checks whether the player has seen the enemy for the first time
 
@@ -1018,6 +1070,8 @@ int main()
                 {
                     sound_play(&sfx_scare);
                     player.seen_enemy = true;
+
+                    jumpscare_screen.active = true;
                 }
             }
         }
@@ -1028,19 +1082,37 @@ int main()
 
         if (state == ID_STATE_INGAME)
         {
-            renderer_draw(renderer, window, &enemy_ghost, keys, &sprite_chest);
+            SDL_SetRenderDrawColor(window->renderer, 0, 0, 0, 255);
+            SDL_RenderFillRect(window->renderer, &(SDL_Rect) { 0, 0, window->width, 120 });
+            renderer_draw(renderer, window, &enemy_ghost, keys, &sprite_chest, &sprite_ammo);
 
             handle_enemy(&enemy_ghost, &ray_caster, &player, &sfx_player_die, &state, middle_ray, &gun_timer, shoot, &sprite_enemy_ghost_hit, &sprite_enemy_ghost);
-            handle_enemy_die(&enemy_ghost, &ray_caster, &sfx_die, map, &gun_timer);
+            handle_enemy_die(&enemy_ghost, &ray_caster, &player, &sfx_die, map, &gun_timer);
 
+            // Minimap
             draw_map(map_texture, window, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
             draw_rays(window, &ray_caster.rays, map, window->width - MAP_WIDTH * SCALE, window->height - MAP_HEIGHT * SCALE);
 
+            if (jumpscare_screen.active)
+            {
+                SDL_SetRenderDrawColor(window->renderer, jumpscare_screen.color.r, jumpscare_screen.color.g, jumpscare_screen.color.b, jumpscare_screen.color.a);
+                SDL_RenderFillRect(window->renderer, &(SDL_Rect){jumpscare_screen.x, jumpscare_screen.y, jumpscare_screen.w, jumpscare_screen.h});
+
+                jumpscare_screen.color.a -= JUMPSCARE_COOLDOWN * 255 * window->delta_time;
+
+                jumpscare_screen.timer += window->delta_time;
+                if (jumpscare_screen.timer > JUMPSCARE_COOLDOWN)
+                {
+                    jumpscare_screen.timer = 0;
+                    jumpscare_screen.color.a = 255;
+                    jumpscare_screen.active = false;
+                }
+            }
+
             draw_hud_text(window, &font, player.ammo, &display_message_timer, buffer, buffer_message);
 
-
-            draw_hud(window, &player, keys, &sprite_gun_shoot, &sprite_gun_model, &sprite_crosshair, &sprite_crosshair_shoot, gun_timer);
+            draw_hud(window, &player, keys, &sprite_gun_shoot, &sprite_gun_model, &sprite_crosshair, &sprite_crosshair_shoot, &sprite_ammo, gun_timer);
         }
         else if (state == ID_STATE_MAINMENU)
         {

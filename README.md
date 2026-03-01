@@ -8,3 +8,8 @@ A copy of the smart ahh Wolfenstein renderer (2d -> apparent 3D using ray-castin
 ![Demo](gifs/gif6.gif)
 
 ![Demo](gifs/gif7.gif)
+
+### Pretty much finished game
+
+Click the video for the original .mp4 video
+[![Demo](gifs/gif8.gif)](gifs/video-8.mp4)

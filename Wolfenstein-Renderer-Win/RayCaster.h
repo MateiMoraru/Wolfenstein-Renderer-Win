@@ -10,7 +10,7 @@
 
 #include "Window.h"
 
-#define NUMBER_RAYS 512
+#define NUMBER_RAYS 200
 #define RAY_LEN 512
 
 #define SENSITIVITY 1 / 50
@@ -48,22 +48,12 @@ typedef struct
     float hit_y;
 
     // Enemy detection
-    char  hit_enemy;
-    float hit_enemy_distance;
-    float hit_enemy_x;
-    float hit_enemy_y;
-    float hit_enemy_u;
-
     // Key detection
-    char  hit_key;
-    float hit_key_distance;
-    float hit_key_x;
-    float hit_key_y;
-
-    char hit_chest;
-    float hit_chest_distance;
-    float hit_chest_x;
-    float hit_chest_y;
+    char  hit_entity;
+    float hit_entity_distance;
+    float hit_entity_x;
+    float hit_entity_y;
+    float hit_entity_u;
 
 } Ray;
 

@@ -1,7 +1,7 @@
 #include "Renderer.h"
 
 const Color4 COLOR_BACKGROUND = { 10, 10, 20, 255 };
-const Color4 COLOR_WALL = { 101, 85, 115, 255 };
+const Color4 COLOR_WALL = { 72, 78, 96, 255 };
 const Color4 COLOR_FLOOR = { 5, 5, 5, 255 };
 const Color4 COLOR_SEPARATOR = { 100, 93, 120, 255 };
 const Color4 COLOR_DOOR_YELLOW = { 199, 191, 80, 255 };
@@ -262,18 +262,25 @@ void renderer_draw_texture(Renderer* renderer, Window* window, Ray* ray, SDL_Rec
 
     Uint8 mod = (Uint8)(255.0f * mult);
 
-    SDL_SetTextureColorMod(tex, mod, mod, mod);
-
     SDL_Rect dst;
     dst.x = rect->x;
     dst.w = rect->w;
     dst.h = (int)proj_height;
     dst.y = rect->y;
 
+    SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureColorMod(tex, mod, mod, mod);
+
     SDL_RenderCopy(window->renderer, tex, NULL, &dst);
 }
 
-void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest)
+void entity_center_from_hit(const Ray* ray, float* out_cx, float* out_cy)
+{
+    *out_cx = floorf(ray->hit_entity_x) + 0.5f;
+    *out_cy = floorf(ray->hit_entity_y) + 0.5f;
+}
+
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest, Sprite* ammo)
 {
     SDL_Rect floor = { 0, window->height / 2, window->width, window->height };
     SDL_SetRenderDrawColor(window->renderer, COLOR_FLOOR.r, COLOR_FLOOR.g, COLOR_FLOOR.b, 255);
@@ -312,57 +319,58 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* key
         SDL_SetRenderDrawColor(window->renderer, col.color.r, col.color.g, col.color.b, 255);
         SDL_RenderFillRect(window->renderer, &rect);
 
-        if (ray.hit_chest == 'C')
+        if (ray.hit_entity == 'C' || ray.hit_entity == 'A')
         {
             SDL_Rect sprite_rect = rect;
-            sprite_rect.y += col.height / 2;//- col.height / 2;
+            sprite_rect.y += col.height / 2;
 
-            float cx_chest = ray.hit_chest_x;
-            float cy_chest = ray.hit_chest_y;
+            float cx_e, cy_e;
+            entity_center_from_hit(&ray, &cx_e, &cy_e);
 
-            float to_player_x = px - cx_chest;
-            float to_player_y = py - cy_chest;
-
-            float len = sqrtf(to_player_x * to_player_x + to_player_y * to_player_y);
+            float nx_e = px - cx_e;
+            float ny_e = py - cy_e;
+            float len = sqrtf(nx_e * nx_e + ny_e * ny_e);
             if (len < 0.000001f) len = 0.000001f;
+            nx_e /= len;
+            ny_e /= len;
 
-            float nx_chest = to_player_x / len;
-            float ny_chest = to_player_y / len;
+            float rx_e = -ny_e;
+            float ry_e = nx_e;
 
-            float rx_chest = -ny_chest;
-            float ry_chest = nx_chest;
-
-            renderer_draw_texture(renderer, window, &ray, &sprite_rect, nx_chest,  ny_chest,cx_chest, cy_chest, px, py, rx_chest, ry_chest, 0.25f, chest->width, chest->tex_columns);
+            if (ray.hit_entity == 'C')
+                renderer_draw_texture(renderer, window, &ray, &sprite_rect, nx_e, ny_e, cx_e, cy_e, px, py, rx_e, ry_e, 0.25f, chest->width, chest->tex_columns);
+            else
+                renderer_draw_texture(renderer, window, &ray, &sprite_rect, nx_e, ny_e, cx_e, cy_e, px, py, rx_e, ry_e, 0.25f, ammo->width, ammo->tex_columns);
+                
         }
 
-        if (ray.hit_key != ' ')
+        if (ray.hit_entity == 'Y' || ray.hit_entity == 'R' || ray.hit_entity == 'G' || ray.hit_entity == 'B')
         {
             rect.y += col.height / 2;
-            rect.h = col.height / 50;
 
             int index = 0;
 
-            if (ray.hit_key == 'Y')
+            if (ray.hit_entity == 'Y')
             {
                 index = 0;
             }
-            else if (ray.hit_key == 'R')
+            else if (ray.hit_entity == 'R')
             {
                 index = 1;
             }
-            else if (ray.hit_key == 'G')
+            else if (ray.hit_entity == 'G')
             {
                 index = 2;
             }
-            else if (ray.hit_key == 'B')
+            else if (ray.hit_entity == 'B')
             {
                 index = 3;
             }
 
 
 
-            float kcx = ray.hit_key_x;
-            float kcy = ray.hit_key_y;
+            float kcx, kcy;
+            entity_center_from_hit(&ray, &kcx, &kcy);
 
             float knx = px - kcx;
             float kny = py - kcy;
@@ -374,9 +382,7 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* key
             float krx = -kny;
             float kry = knx;
 
-            float key_half_w = 0.25f;
-
-            renderer_draw_texture(renderer, window, &ray, &rect, knx, kny, kcx, kcy, px, py, krx, kry, key_half_w, keys[index].width, keys[index].tex_columns);
+            renderer_draw_texture(renderer, window, &ray, &rect, knx, kny, kcx, kcy, px, py, krx, kry, 0.25f, keys[index].width, keys[index].tex_columns);
 
             //col.color = COLOR_DOOR_YELLOW;
 
@@ -384,10 +390,10 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* key
             //SDL_RenderFillRect(window->renderer, &rect);
         }
 
-        if (ray.hit_enemy_distance > MAX_SEE_DISTANCE) continue;
-        if (enemy->active && ray.hit_enemy == 'E')
-        {
-            renderer_draw_texture(renderer, window, &ray, &rect, nx, ny, cx, cy, px, py, rx, ry, half_w, enemy->sprite.width, enemy->sprite.tex_columns);
-        }
+        if (ray.hit_entity_distance > MAX_SEE_DISTANCE) continue;
+            if (enemy->active && ray.hit_entity == 'E')
+            {
+                renderer_draw_texture(renderer, window, &ray, &rect, nx, ny, cx, cy, px, py, rx, ry, half_w, enemy->sprite.width, enemy->sprite.tex_columns);
+            }
     }
 }
