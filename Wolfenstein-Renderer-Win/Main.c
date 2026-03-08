@@ -83,12 +83,13 @@ typedef struct RectScare
 } RectScare;
 
 // Display message buffers
-char* buffer_start = "Look for all the keys and look for the chest!";
+char* buffer_start = "Look for all the keys (use the minimap) and find the chest!";
 char* buffer_found_key_yellow = "Yellow key found! 3 More to go.";
 char* buffer_found_key_red = "Red key found! 2 More to go.";
 char* buffer_found_key_green = "Green key found! 1 More to go.";
 char* buffer_found_key_blue = "Finally done! Now look for the treasure";
 char* buffer_no_bullets = "Uh oh!!!!!! No bullets? Try to avoid the ghost:).";
+const float buffer_display_time = 10.0f;
 
 // Enemy spawn position
 int enemy_spawn_pos[4][2] = {
@@ -171,10 +172,12 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
     float strafe = 0.0f;
 
     float mult = 3.0f;
+    bool running = false;
     if (keys[SDL_SCANCODE_LSHIFT])
     {
         mult = 5.0f;
         footstep_interval = 0.4f;
+        running = true;
     }
     else
     {
@@ -195,7 +198,7 @@ void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
             footstep_timer = 0;
         }
     }
-    player_move(map, player, ray_caster, forward, strafe, dt); 
+    player_move(map, player, ray_caster, forward, strafe, dt, running); 
 }
 
 // Initialize map
@@ -374,25 +377,25 @@ SDL_Texture* map_build_texture(Window* window, char** map)
                 g = 0; 
                 b = 61;
             }
-            else if (c == '1')
+            else if (c == '1' || c == 'Y')
             {
                 r = COLOR_DOOR_YELLOW.r; 
                 g = COLOR_DOOR_YELLOW.g; 
                 b = COLOR_DOOR_YELLOW.b;
             }
-            else if (c == '2')
+            else if (c == '2' || c == 'R')
             {
                 r = COLOR_DOOR_RED.r;
                 g = COLOR_DOOR_RED.g; 
                 b = COLOR_DOOR_RED.b;
             }
-            else if (c == '3')
+            else if (c == '3' || c == 'G')
             {
                 r = COLOR_DOOR_GREEN.r; 
                 g = COLOR_DOOR_GREEN.g; 
                 b = COLOR_DOOR_GREEN.b;
             }
-            else if (c == '4')
+            else if (c == '4' || c == 'B')
             {
                 r = COLOR_DOOR_BLUE.r; 
                 g = COLOR_DOOR_BLUE.g; 
@@ -466,7 +469,9 @@ void player_init(Player* player, RayCaster* ray_caster, char** map, int keys)
         .end = false,
         .seen_enemy = false,
         .hit_entity_x = -1,
-        .hit_entity_y = -1
+        .hit_entity_y = -1,
+        .y_offset = 0,
+        .y_offset_velocity = 1
     };
 
     if (keys >= 1)
@@ -721,9 +726,9 @@ void draw_hud_text(Window* window, Font* font, int ammo, float* display_message_
     // Handles the temporary display message
     *display_message_timer += window->delta_time;
 
-    if (*display_message_timer < 5.0f)
+    if (*display_message_timer < buffer_display_time)
     {
-        text_draw_shadow(window->renderer, font, 0, window->height - FONT_SIZE, buffer_message, 1, (SDL_Color) { 255, 255, 255, 255 });
+        text_draw_shadow(window->renderer, font, 10, FONT_SIZE * 2, buffer_message, 1, (SDL_Color) { 233, 240, 113, 255 });
     }
 }
 
@@ -1087,7 +1092,7 @@ int main()
         {
             SDL_SetRenderDrawColor(window->renderer, 0, 0, 0, 255);
             SDL_RenderFillRect(window->renderer, &(SDL_Rect) { 0, 0, window->width, 120 });
-            renderer_draw(renderer, window, &enemy_ghost, keys, &sprite_chest, &sprite_ammo);
+            renderer_draw(renderer, window, &enemy_ghost, keys, &sprite_chest, &sprite_ammo, player.y_offset);
 
             handle_enemy(&enemy_ghost, &ray_caster, &player, &sfx_player_die, &state, middle_ray, &gun_timer, shoot, &sprite_enemy_ghost_hit, &sprite_enemy_ghost);
             handle_enemy_die(&enemy_ghost, &ray_caster, &player, &sfx_die, map, &gun_timer);

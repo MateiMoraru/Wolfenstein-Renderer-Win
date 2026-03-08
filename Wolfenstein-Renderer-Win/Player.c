@@ -59,7 +59,12 @@ static int circle_hits_wall(char** map, float x, float y, float r)
     return 0;
 }
 
-void player_move(char** map, Player* player, RayCaster* ray_caster, float forward, float strafe, float delta_time)
+void player_handle_y(float move)
+{
+
+}
+
+void player_move(char** map, Player* player, RayCaster* ray_caster, float forward, float strafe, float delta_time, bool running)
 {
     float dir = DEG_TO_RAD(player->direction + DIR_OFFSET);
 
@@ -96,6 +101,34 @@ void player_move(char** map, Player* player, RayCaster* ray_caster, float forwar
     player->x = new_x;
     player->y = new_y;
 
+
+    // Handles Y offset for smoother movement :)
+    if (vlen > 0.1f)
+    {
+        float step = player->y_offset_velocity * Y_OFFSET_ACCELERATION * delta_time;
+
+        if (running)
+            step *= 2.0f;
+
+        player->y_offset += step;
+
+        // Handles the bounce ig
+        if (player->y_offset > 10.0f)
+        {
+            player->y_offset = 10.0f;
+            player->y_offset_velocity *= -1.0f;
+        }
+        else if (player->y_offset < -10.0f)
+        {
+            player->y_offset = -10.0f;
+            player->y_offset_velocity *= -1.0f;
+        }
+    }
+    else
+    {
+        player->y_offset = 0.0f;
+    }
+
     ray_caster_set_position(ray_caster, player->x, player->y);
 }
 
@@ -105,7 +138,7 @@ char player_check_keys(Player* player, char** map)
     int x = player->x;
     int y = player->y;
 
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++)                                                             
     {
         int dx = x - directions[i][0];
         int dy = y - directions[i][1];

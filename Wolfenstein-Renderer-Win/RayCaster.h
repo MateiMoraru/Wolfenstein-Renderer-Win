@@ -10,12 +10,12 @@
 
 #include "Window.h"
 
-#define NUMBER_RAYS 200
+#define NUMBER_RAYS 300
 #define RAY_LEN 512
 
 #define SENSITIVITY 1 / 50
 
-#define SCALE 2.0
+#define SCALE 2.7f
 
 #define M_PI 3.14156
 
@@ -30,7 +30,9 @@
 
 #define RAY_CHECK_SKIP_INTERVAL 3
 
-#define RAY_DISPLAY_INTERVAL 10
+#define RAY_DISPLAY_INTERVAL 5
+
+#define MIN_ENEMY_SEE_DISTANCE 15
 
 typedef struct
 {

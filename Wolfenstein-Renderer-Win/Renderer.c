@@ -280,7 +280,7 @@ void entity_center_from_hit(const Ray* ray, float* out_cx, float* out_cy)
     *out_cy = floorf(ray->hit_entity_y) + 0.5f;
 }
 
-void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest, Sprite* ammo)
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest, Sprite* ammo, float y_offset)
 {
     SDL_Rect floor = { 0, window->height / 2, window->width, window->height };
     SDL_SetRenderDrawColor(window->renderer, COLOR_FLOOR.r, COLOR_FLOOR.g, COLOR_FLOOR.b, 255);
@@ -312,7 +312,7 @@ void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* key
         Ray ray = renderer->ray_caster->rays[i];
 
         rect.x = (int)(i * column_width);
-        rect.y = window->height / 2 - col.height / 2;
+        rect.y = window->height / 2 - col.height / 2 + y_offset;
         rect.h = col.height;
         rect.w = (int)((i + 1) * column_width) - rect.x;
 

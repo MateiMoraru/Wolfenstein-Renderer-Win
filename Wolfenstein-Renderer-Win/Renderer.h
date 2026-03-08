@@ -81,6 +81,6 @@ Renderer* renderer_init(Player* player, RayCaster* ray_caster, Window* window);
 void renderer_update(Renderer* renderer);
 
 // Draws the world as 3D
-void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest, Sprite* ammo);
+void renderer_draw(Renderer* renderer, Window* window, Enemy* enemy, Sprite* keys, Sprite* chest, Sprite* ammo, float y_offset);
 
 #endif

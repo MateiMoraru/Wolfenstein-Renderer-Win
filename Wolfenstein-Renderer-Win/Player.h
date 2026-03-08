@@ -14,6 +14,7 @@
 #define DIR_OFFSET 50
 #define ACCELERATION 5.0f
 #define SPEED_MULT 2.0f
+#define Y_OFFSET_ACCELERATION 47.0f
 
 typedef struct
 {
@@ -46,11 +47,16 @@ typedef struct
 
     int hit_entity_x;
     int hit_entity_y;
+
+
+    // For smoother movement
+    float y_offset;
+    float y_offset_velocity;
 } Player;
 
 void player_set_position(char** map, Player* player, RayCaster* ray_caster, float x, float y);
 
-void player_move(char** map, Player* player, RayCaster* ray_caster, float forward, float strafe, float delta_time);
+void player_move(char** map, Player* player, RayCaster* ray_caster, float forward, float strafe, float delta_time, bool moving);
 
 char player_check_keys(Player* player, char** map);
 

@@ -166,7 +166,7 @@ void draw_ray(Window* window, Ray* ray, char** map, int offset_x, int offset_y, 
     float y0 = ray->y * SCALE;
     float x1 = x0 + dx;
     float y1 = y0 + dy;
-    SDL_SetRenderDrawColor(window->renderer, 70, 107, 235, 255);
+    SDL_SetRenderDrawColor(window->renderer, 206, 7, 222, 255);
     SDL_RenderDrawLine(window->renderer, x0 + offset_x, y0 + offset_y, x1 + offset_x, y1 + offset_y);
 }
 
@@ -184,7 +184,7 @@ bool ray_caster_hit_enemy(RayCaster* ray_caster)
 {
     for (int i = 0; i < NUMBER_RAYS; i += RAY_CHECK_SKIP_INTERVAL)
     {
-        if (ray_caster->rays[i].hit_entity == 'E')
+        if (ray_caster->rays[i].hit_entity == 'E' && ray_caster->rays[i].hit_entity_distance < MIN_ENEMY_SEE_DISTANCE)
         {
             return true;
         }
