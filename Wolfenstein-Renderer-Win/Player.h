@@ -11,10 +11,18 @@
 #include <math.h>
 #include "RayCaster.h"
 
-#define DIR_OFFSET 50
+#define DIR_OFFSET 45
+
 #define ACCELERATION 5.0f
 #define SPEED_MULT 2.0f
 #define Y_OFFSET_ACCELERATION 47.0f
+
+
+#define PLAYER_MAX_FOV 130
+#define PLAYER_MIN_FOV 90
+#define PLAYER_FOV_INCREASE_COOLDOWN 500.0f
+#define PLAYER_FOV_INCREASE ((PLAYER_MAX_FOV - PLAYER_MIN_FOV) / PLAYER_FOV_INCREASE_COOLDOWN)
+#define PLAYER_FOV_CHANGE_COOLDOWN_SEC 0.01f
 
 typedef struct
 {
@@ -52,7 +60,12 @@ typedef struct
     // For smoother movement
     float y_offset;
     float y_offset_velocity;
+
+    float fov_increase_timer;
+    float fov_increase;
 } Player;
+
+void player_init(Player* player, RayCaster* ray_caster, char** map, int keys);
 
 void player_set_position(char** map, Player* player, RayCaster* ray_caster, float x, float y);
 

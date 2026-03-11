@@ -6,6 +6,55 @@ static const int directions[8][2] = {
     {-1,  1}, {0,  1}, {1,  1}
 };
 
+
+// Player init, also used for restart
+//      Resets the raycaster as well :)
+void player_init(Player* player, RayCaster* ray_caster, char** map, int keys)
+{
+    *player = (Player){
+        .x = 1,
+        .y = 1,
+        .vx = 0,
+        .vy = 0,
+        .speed = 7.0f,
+        .accel = 100,
+        .direction = 45,
+        .fov = PLAYER_MIN_FOV,
+        .ammo = 13,
+        .died = false,
+        .found_key_yellow = false,
+        .found_key_red = false,
+        .found_key_green = false,
+        .found_key_blue = false,
+        .found_keys = keys,
+        .end = false,
+        .seen_enemy = false,
+        .hit_entity_x = -1,
+        .hit_entity_y = -1,
+        .y_offset = 0,
+        .y_offset_velocity = 1,
+        .fov_increase_timer = 0,
+        .fov_increase = 0
+    };
+
+    if (keys >= 1)
+        player->found_key_yellow = true;
+    if (keys >= 2)
+        player->found_key_red = true;
+    if (keys >= 3)
+        player->found_key_green = true;
+    if (keys >= 4)
+        player->found_key_blue = true;
+
+    ray_caster_init(player->x, player->y, player->direction, player->fov, ray_caster);
+
+    player_set_position(map, player, ray_caster, 4, 4);
+
+    ray_caster_set_position(ray_caster, player->x, player->y);
+}
+
+
+
 void player_set_position(char** map, Player* player, RayCaster* ray_caster, float x, float y)
 {
     map[(int)player->y][(int)player->x] = ' ';
@@ -66,6 +115,7 @@ void player_handle_y(float move)
 
 void player_move(char** map, Player* player, RayCaster* ray_caster, float forward, float strafe, float delta_time, bool running)
 {
+    // Handles all the directions and all that :)
     float dir = DEG_TO_RAD(player->direction + DIR_OFFSET);
 
     float ax = cosf(dir) * forward - sinf(dir) * strafe * SPEED_MULT;
@@ -94,6 +144,8 @@ void player_move(char** map, Player* player, RayCaster* ray_caster, float forwar
 
     float new_x = player->x;
     float new_y = player->y;
+
+    // Basic collision
 
     if (!circle_hits_wall(map, target_x, new_y, r)) new_x = target_x;
     if (!circle_hits_wall(map, new_x, target_y, r)) new_y = target_y;
@@ -129,7 +181,72 @@ void player_move(char** map, Player* player, RayCaster* ray_caster, float forwar
         player->y_offset = 0.0f;
     }
 
+    // Increase the FOV of the player when running
+
+    if (running)
+    {
+        player->fov_increase_timer += delta_time;
+
+        if (player->fov <= PLAYER_MIN_FOV)
+        {
+            player->fov = PLAYER_MIN_FOV;
+            player->fov_increase = 0;
+        }
+        else
+        {
+            player->fov_increase = ((player->fov - PLAYER_MIN_FOV) / PLAYER_FOV_INCREASE);
+        }
+
+        if (player->fov < PLAYER_MAX_FOV && player->fov_increase_timer > PLAYER_FOV_CHANGE_COOLDOWN_SEC / PLAYER_FOV_INCREASE_COOLDOWN)
+        {
+            player->fov_increase_timer = 0.0f;
+            player->fov_increase++;
+            player->fov = PLAYER_MIN_FOV + PLAYER_FOV_INCREASE * player->fov_increase;
+
+            if (player->fov > PLAYER_MAX_FOV)
+            {
+                player->fov = PLAYER_MAX_FOV;
+                player->fov_increase = PLAYER_FOV_INCREASE_COOLDOWN;
+            }
+
+            ray_caster_init(player->x, player->y, player->direction - ((PLAYER_FOV_INCREASE * player->fov_increase) / 2.0f), player->fov, ray_caster);
+        }
+    }
+    else
+    {
+        player->fov_increase_timer += delta_time;
+
+        if (player->fov >= PLAYER_MAX_FOV)
+        {
+            player->fov = PLAYER_MAX_FOV;
+            player->fov_increase = PLAYER_FOV_INCREASE_COOLDOWN;
+        }
+        else
+        {
+            player->fov_increase = ((player->fov - PLAYER_MIN_FOV) / PLAYER_FOV_INCREASE);
+        }
+
+        if (player->fov > PLAYER_MIN_FOV && player->fov_increase_timer > PLAYER_FOV_CHANGE_COOLDOWN_SEC / PLAYER_FOV_INCREASE_COOLDOWN)
+        {
+            player->fov_increase_timer = 0.0f;
+            player->fov_increase--;
+            player->fov = PLAYER_MIN_FOV + PLAYER_FOV_INCREASE * player->fov_increase;
+
+            if (player->fov < PLAYER_MIN_FOV)
+            {
+                player->fov = PLAYER_MIN_FOV;
+                player->fov_increase = 0;
+            }
+
+            ray_caster_init(player->x, player->y, player->direction - ((PLAYER_FOV_INCREASE * player->fov_increase) / 2.0f), player->fov, ray_caster);
+        }
+    }
+
+    // Updates the ray_caster position so theres no need to do it outside the player struct calls :)
     ray_caster_set_position(ray_caster, player->x, player->y);
+
+    // Not needed if will decide to keep the FOV change
+    //ray_caster_set_position(ray_caster, player->x, player->y);
 }
 
 
@@ -154,3 +271,4 @@ char player_check_keys(Player* player, char** map)
         }
     }
 }
+

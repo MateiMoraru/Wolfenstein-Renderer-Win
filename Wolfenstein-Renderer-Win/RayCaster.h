@@ -15,7 +15,7 @@
 
 #define SENSITIVITY 1 / 50
 
-#define SCALE 2.7f
+#define SCALE 3.0f
 
 #define M_PI 3.14156
 

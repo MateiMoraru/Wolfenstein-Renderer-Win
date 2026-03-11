@@ -164,6 +164,7 @@ void handle_mouse(Mouse* mouse)
 }
 
 // Handle the keys related to the player movement
+//      When sprinting, it changes the FOV
 void handle_keys(char** map, Player* player, RayCaster* ray_caster, float dt)
 {
     const Uint8* keys = SDL_GetKeyboardState(NULL);
@@ -446,53 +447,8 @@ void sprite_draw_hud(Window* window, Sprite* sprite, float scale)
     SDL_RenderCopy(window->renderer, sprite->texture, NULL, &dst);
 }
 
-// Player init, also used for restart
-//      Resets the raycaster as well :)
-void player_init(Player* player, RayCaster* ray_caster, char** map, int keys)
-{
-    *player = (Player){
-        .x = 1,
-        .y = 1,
-        .vx = 0,
-        .vy = 0,
-        .speed = 7.0f,
-        .accel = 100,
-        .direction = 45,
-        .fov = 100,
-        .ammo = 13,
-        .died = false,
-        .found_key_yellow = false,
-        .found_key_red = false,
-        .found_key_green = false,
-        .found_key_blue = false,
-        .found_keys = keys,
-        .end = false,
-        .seen_enemy = false,
-        .hit_entity_x = -1,
-        .hit_entity_y = -1,
-        .y_offset = 0,
-        .y_offset_velocity = 1
-    };
-
-    if (keys >= 1)
-        player->found_key_yellow = true;
-    if (keys >= 2)
-        player->found_key_red = true;
-    if (keys >= 3)
-        player->found_key_green = true;
-    if (keys >= 4)
-        player->found_key_blue = true;
-
-    ray_caster_init(player->x, player->y, player->direction, player->fov, ray_caster);
-
-    player_set_position(map, player, ray_caster, 4, 4);
-
-    ray_caster_set_position(ray_caster, player->x, player->y);
-}
-
 
 // ***** Enemy handling
-
 // Update the enemy, doesnt check for death
 void update_enemy(Window* window, Enemy* enemy_ghost, Player* player, float* enemy_move_timer, char** map)
 {
@@ -1042,12 +998,12 @@ int main()
                 displayed_no_bullets_message = true;
             }
 
+            handle_keys(map, &player, &ray_caster, window->delta_time);
+
             ray_caster_cast_all(&ray_caster, map);
 
             update_enemy(window, &enemy_ghost, &player, &enemy_move_timer, map);
 
-            handle_keys(map, &player, &ray_caster, window->delta_time);
-            ray_caster_set_position(&ray_caster, player.x, player.y);
 
             // F this gotta use comments
             // Here it checks if player got any keys this frame (For now only checks for the yellow key)
